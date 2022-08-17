@@ -1,5 +1,7 @@
+require('dotenv').config()
 import http from 'http';
 import express from 'express';
+import cors from 'cors'
 import routes from './routes'
 import { ApolloServer } from 'apollo-server-express';
 import {
@@ -34,6 +36,8 @@ async function startServer(){
         console.log(`🚀 GraphQL ready at http://localhost:${PORT}${server.graphqlPath}`);
     })
 
+    app.use(cors())
+    app.use(express.json())
     app.use('/', routes)
 }
 

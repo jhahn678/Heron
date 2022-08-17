@@ -1,40 +1,35 @@
-import { IMedia }from './Media'
-import { ICatch } from './Catch'
-import { ILocation } from './Location'
-
 export interface IUser {
-    _id: string,
-    details: UserDetails
-    account: UserAccount
-    contacts: string[]
-    pending_contacts: PendingContact[]
-    locations: ILocation[]
-    catches: ICatch[]
-    media: IMedia[]
-    createdAt: Date
-    updatedAt: Date
-}
-
-interface UserDetails {
-    firstName: string,
-    lastName: string,
-    fullName: string,
+    id: number,
+    firstname: string,
+    lastname: string,
     username: string,
-    avatar: IMedia,
+    avatar: string,
     bio: string,
     location: string
-}
-
-interface UserAccount {
     email: string
     phone: number
     googleId: string
     facebookId: string
     password: string
+    created_at: Date
+    updated_at: Date
 }
 
-export interface PendingContact {
-    user: string,
-    status: 'TO' | 'FROM'
-    createdAt: Date
+
+export interface UserAvatar {
+    id: number,
+    key: string,
+    url: string,
+    user: number,
+    created_at: Date
+}
+
+export interface IContact {
+    user_one: number,
+    user_two: number
+}
+
+export interface IPendingContact {
+    user_sending: number,
+    user_recipient: number
 }

@@ -1,9 +1,13 @@
 declare global {
     namespace NodeJS {
       interface ProcessEnv {
-        PORT: number
-        MONGO_DB_URI: string
+        PORT: string
+        MONGO_URI: string
         JWT_SECRET: string
+        PG_HOST: string
+        PG_PORT: string
+        PG_USER: string
+        PG_DATABASE: string
       }
     }
 }

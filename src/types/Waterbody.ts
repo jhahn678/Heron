@@ -1,17 +1,24 @@
-import { IMedia } from "./Media"
-import { ILocation } from "./Location"
-import { ICatch } from "./Catch"
+import { GeometryCollection } from "geojson"
 
 export interface IWaterbody {
-    _id: string
+    _id: string,
     name: string
-    states: [string]
+    states: string[]
     classification: string
+    weight: number
     country: string
-    counties: [string]
+    counties: string[]
     ccode: string
     subregion: string
-    catches: ICatch[]
-    locations: ILocation[]
-    media: IMedia[]
+    geometries: string[]
+    simplified_geometries: GeometryCollection
+}
+
+export interface WaterbodyMedia {
+    id: number,
+    waterbody: string,
+    user: number,
+    key: string,
+    url: string,
+    created_at: Date
 }

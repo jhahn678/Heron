@@ -12,6 +12,8 @@
   "author": "jhahn678",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/jsonwebtoken": "^8.5.8",
     "@types/node": "^18.7.3",
     "nodemon": "^2.0.19",
     "rimraf": "^3.0.2",
@@ -25,11 +27,15 @@
     "apollo-server-express": "^3.10.1",
     "bcrypt": "^5.0.1",
     "cors": "^2.8.5",
+    "datasource-sql": "^2.0.1",
+    "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "graphql": "^16.5.0",
     "graphql-scalars": "^1.18.0",
     "helmet": "^5.1.1",
     "joi": "^17.6.0",
-    "jsonwebtoken": "^8.5.1"
+    "jsonwebtoken": "^8.5.1",
+    "knex": "^2.2.0",
+    "pg": "^8.7.3"
   }
 }

@@ -1,29 +1,26 @@
-import { IMedia } from "./Media"
-import { IUser } from './User'
 import { Point } from 'geojson'
 
 export interface ICatch {
-    _id: string,
-    user: string,
+    id: number,
+    user: number,
     waterbody: string,
-    location: Point,
+    geom: Point,
     title: string,
     description: string,
     species: string,
-    length: Length,
-    weight: Weight,
+    length: number,
+    length_unit: 'IN' | 'CM',
+    weight: number,
+    weight_unit:  'LB' | 'KG' | 'OZ' | 'G'
     rig: string,
-    media: IMedia[]
-    createdAt: Date,
-    updatedAt: Date
+    created_at: Date,
+    updated_at: Date
 } 
 
-type Length = {
-    value: number,
-    unit: 'IN' | 'CM'
-}
-
-type Weight = {
-    value: number,
-    unit: 'LB' | 'KG' | 'OZ' | 'G'
+export interface CatchMedia {
+    id: number
+    key: string
+    url: string
+    user: number
+    created_at: string
 }
