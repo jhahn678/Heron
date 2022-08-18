@@ -2,7 +2,6 @@ import { gql } from 'apollo-server-express'
 import { Resolvers } from '../types/graphql'
 import knex, { st } from '../db/knex'
 import { AuthError } from '../utils/errors/AuthError'
-import { NewCatchError } from '../utils/errors/NewCatchError'
 import { validatePointCoordinates } from '../utils/validations/coordinates'
 import { NewCatchBuilder, CatchUpdateBuilder } from '../types/Catch'
 import { RequestError } from '../utils/errors/RequestError'
@@ -53,7 +52,7 @@ export const typeDef =  gql`
         createCatch(newCatch: NewCatch!): Catch
         updateCatchDetails(id: Int!, details: CatchDetails!): Catch
         updateCatchLocation(id: Int!, coords: [Float]!): Catch
-        addCatchMedia(id: Int!, media: [MediaInput]!): CatchMedia
+        addCatchMedia(id: Int!, media: [MediaInput]!): [CatchMedia]
         removeCatchMedia(id: Int!): CatchMedia
         deleteCatch(id: Int!): Catch
     }
@@ -113,9 +112,8 @@ export const resolver: Resolvers = {
                 species, weight, length, media, title, rig 
             } = newCatch;
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED');
-            if(!waterbody) throw new NewCatchError('INVALID_WATERBODY')
             const exists = await dataSources.waterbodies.getWaterbody(waterbody)
-            if(!exists) throw new NewCatchError('INVALID_WATERBODY')
+            if(!exists) throw new RequestError('RESOURCE_NOT_FOUND')
             const catchObj: NewCatchBuilder = {
                 user: auth,
                 waterbody
@@ -174,9 +172,10 @@ export const resolver: Resolvers = {
         addCatchMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
             //ensure validity of media
-            const res = await knex('catchMedia').insert({ user: auth, catch: id, ...media }).returning('*')
+            const allMedia = media.map(m => ({ user: auth, catch: id, ...m }))
+            const res = await knex('catchMedia').insert(allMedia).returning('*')
             if(res.length === 0) throw new RequestError('REQUEST_FAILED')
-            return res[0];
+            return res;
         },
         removeCatchMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
