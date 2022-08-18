@@ -10,7 +10,6 @@ declare global {
         PG_DATABASE: string
       }
     }
-}
-
-
+  }
+  
 export {}
