@@ -4,7 +4,7 @@ type ErrorType =
 | 'USERNAME_INVALID' | 'EMAIL_REQUIRED'
 | 'USERNAME_REQUIRED' | 'PASSWORD_REQUIRED'
 | 'AUTHENTICATION_REQUIRED' | 'AUTHENTICATION_FAILED'
-| 'UNAUTHORIZED'
+| 'UNAUTHORIZED' | 'TOKEN_INVALID' | 'TOKEN_EXPIRED'
 
 export class AuthError extends Error{
     status: number = 400
@@ -36,6 +36,21 @@ export class AuthError extends Error{
                 break;
             case 'PASSWORD_REQUIRED':
                 this.message = 'Password not provided';
+                break;
+            case 'AUTHENTICATION_FAILED':
+                this.message = 'Could not authenticate request';
+                break;
+            case 'AUTHENTICATION_REQUIRED':
+                this.message = 'Authentication not provided'
+                break;
+            case 'UNAUTHORIZED':
+                this.message = 'Request not authorized';
+                break;
+            case 'TOKEN_INVALID':
+                this.message = 'The provided authentication token is invalid';
+                break;
+            case 'TOKEN_EXPIRED':
+                this.message = 'The provided authentication token is expired';
                 break;
             default:
                 break;
