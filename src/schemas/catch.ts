@@ -114,7 +114,7 @@ export const resolver: Resolvers = {
             } = newCatch;
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED');
             if(!waterbody) throw new NewCatchError('INVALID_WATERBODY')
-            const exists = await dataSources.waterbodies.findOneById(waterbody)
+            const exists = await dataSources.waterbodies.getWaterbody(waterbody)
             if(!exists) throw new NewCatchError('INVALID_WATERBODY')
             const catchObj: NewCatchBuilder = {
                 user: auth,

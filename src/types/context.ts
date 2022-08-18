@@ -1,8 +1,7 @@
-import { MongoDataSource } from "apollo-datasource-mongodb"
-import { IWaterbody } from "./Waterbody"
+import { Waterbodies } from "../db/mongo"
 
 export interface DataSources {
-    waterbodies: MongoDataSource<IWaterbody, Context>
+    waterbodies: Waterbodies
 }
 
 export interface Context {
