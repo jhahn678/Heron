@@ -6,7 +6,7 @@ export const typeDef =  gql`
         description: String,
         user: User,
         waterbody: Waterbody,
-        media: [Media]
+        media: [LocationMedia]
         geojson: Geojson
     }
 

@@ -24,9 +24,11 @@ import {
 
 import { typeDefs as scalarTypeDefs } from "graphql-scalars";
 import { mergeTypeDefs, mergeResolvers } from "@graphql-tools/merge";
+import { constraintDirectiveTypeDefs } from 'graphql-constraint-directive';
 
 
 const typesArray = [
+    constraintDirectiveTypeDefs,
     ...scalarTypeDefs,
     userTypeDef,
     pendingContactTypeDef,

@@ -11,7 +11,7 @@ export const typeDef =  gql`
         subregion: String
         catches: [Catch]
         locations: [Location]
-        media: [Media]
+        media: [WaterbodyMedia]
     }
 
     type Query {
