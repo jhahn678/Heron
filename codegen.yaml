@@ -1,0 +1,16 @@
+schema: src/schemas/index.ts
+generates:
+  src/types/graphql.ts:
+    config:
+      contextType: ./context#Context
+      maybeValue: T | null | undefined
+      useIndexSignature: true
+      mappers:
+        User: ./User#IUser
+        PendingContact: './User#IPendingContact'
+        Catch: ./Catch#ICatch
+        Location: ./Location#ILocation
+        Waterbody: ./Waterbody#IWaterbody
+    plugins:
+      - typescript
+      - typescript-resolvers
