@@ -1,4 +1,5 @@
 import { Point, Polygon, LineString } from "geojson"
+import { Knex } from "knex"
 
 export interface ILocation {
     id: number,
@@ -17,4 +18,13 @@ export interface LocationMedia {
     key: string,
     url: string,
     created_at: Date
+}
+
+export interface NewLocationObj {
+    user: number,
+    waterbody: string,
+    title?: string,
+    description?: string,
+    geom?: Knex.Raw,
+    hexcolor?: string
 }

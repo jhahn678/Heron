@@ -122,17 +122,6 @@ export type Geojson = {
   type?: Maybe<Scalars['String']>;
 };
 
-export type GeojsonPoint = {
-  coordinates?: InputMaybe<Array<InputMaybe<Scalars['Float']>>>;
-  pinColor?: InputMaybe<Scalars['String']>;
-};
-
-export type GeojsonPolygon = {
-  coordinates?: InputMaybe<Array<InputMaybe<Array<InputMaybe<Scalars['Float']>>>>>;
-  fillColor?: InputMaybe<Scalars['String']>;
-  strokeColor?: InputMaybe<Scalars['String']>;
-};
-
 export type Geometry = Point | Polygon;
 
 export type LengthInput = {
@@ -151,7 +140,7 @@ export type Location = {
   geojson?: Maybe<Geojson>;
   media?: Maybe<Array<Maybe<LocationMedia>>>;
   title?: Maybe<Scalars['String']>;
-  user?: Maybe<User>;
+  user: User;
   waterbody?: Maybe<Waterbody>;
 };
 
@@ -184,21 +173,21 @@ export type MediaInput = {
 export type Mutation = {
   __typename?: 'Mutation';
   acceptPendingContact?: Maybe<PendingContact>;
-  addCatchMedia?: Maybe<CatchMedia>;
-  addLocationMedia?: Maybe<Location>;
-  addWaterbodyMedia?: Maybe<Waterbody>;
-  bookmarkWaterbody?: Maybe<Array<Maybe<Waterbody>>>;
+  addCatchMedia?: Maybe<Array<Maybe<CatchMedia>>>;
+  addLocationMedia?: Maybe<Array<Maybe<LocationMedia>>>;
+  addWaterbodyMedia?: Maybe<Array<Maybe<WaterbodyMedia>>>;
+  bookmarkWaterbody?: Maybe<Waterbody>;
   createCatch?: Maybe<Catch>;
   createLocationPoint?: Maybe<Location>;
   createLocationPolygon?: Maybe<Location>;
   createPendingContact?: Maybe<PendingContact>;
   deleteCatch?: Maybe<Catch>;
   deleteContact?: Maybe<Scalars['Int']>;
-  deleteLocation?: Maybe<Array<Maybe<Location>>>;
+  deleteLocation?: Maybe<Location>;
   deletePendingContact?: Maybe<PendingContact>;
   rejectPendingContact?: Maybe<PendingContact>;
   removeCatchMedia?: Maybe<CatchMedia>;
-  removeLocationMedia?: Maybe<Location>;
+  removeLocationMedia?: Maybe<LocationMedia>;
   updateCatchDetails?: Maybe<Catch>;
   updateCatchLocation?: Maybe<Catch>;
   updateGeojsonPoint?: Maybe<Location>;
@@ -221,13 +210,14 @@ export type MutationAddCatchMediaArgs = {
 
 
 export type MutationAddLocationMediaArgs = {
-  id: Scalars['ID'];
-  media: MediaInput;
+  id: Scalars['Int'];
+  media: Array<MediaInput>;
 };
 
 
 export type MutationAddWaterbodyMediaArgs = {
-  media: Array<InputMaybe<MediaInput>>;
+  id: Scalars['ID'];
+  media: Array<MediaInput>;
 };
 
 
@@ -242,12 +232,12 @@ export type MutationCreateCatchArgs = {
 
 
 export type MutationCreateLocationPointArgs = {
-  location?: InputMaybe<NewLocationPoint>;
+  location: NewLocationPoint;
 };
 
 
 export type MutationCreateLocationPolygonArgs = {
-  location?: InputMaybe<NewLocationPolygon>;
+  location: NewLocationPolygon;
 };
 
 
@@ -267,7 +257,7 @@ export type MutationDeleteContactArgs = {
 
 
 export type MutationDeleteLocationArgs = {
-  id: Scalars['ID'];
+  id: Scalars['Int'];
 };
 
 
@@ -287,8 +277,7 @@ export type MutationRemoveCatchMediaArgs = {
 
 
 export type MutationRemoveLocationMediaArgs = {
-  id: Scalars['ID'];
-  mediaId: Scalars['ID'];
+  id: Scalars['Int'];
 };
 
 
@@ -305,20 +294,20 @@ export type MutationUpdateCatchLocationArgs = {
 
 
 export type MutationUpdateGeojsonPointArgs = {
-  geojson?: InputMaybe<GeojsonPoint>;
-  id: Scalars['ID'];
+  id: Scalars['Int'];
+  point: PointUpdate;
 };
 
 
 export type MutationUpdateGeojsonPolygonArgs = {
-  geojson?: InputMaybe<GeojsonPolygon>;
-  id: Scalars['ID'];
+  id: Scalars['Int'];
+  polygon: PolygonUpdate;
 };
 
 
 export type MutationUpdateLocationDetailsArgs = {
-  details?: InputMaybe<LocationDetails>;
-  id: Scalars['ID'];
+  details: LocationDetails;
+  id: Scalars['Int'];
 };
 
 
@@ -346,18 +335,17 @@ export type NewCatch = {
 export type NewLocationPoint = {
   coordinates: Array<InputMaybe<Scalars['Float']>>;
   description?: InputMaybe<Scalars['String']>;
+  hexcolor?: InputMaybe<Scalars['String']>;
   media?: InputMaybe<Array<InputMaybe<MediaInput>>>;
-  pinColor?: InputMaybe<Scalars['String']>;
   title?: InputMaybe<Scalars['String']>;
   waterbody: Scalars['ID'];
 };
 
 export type NewLocationPolygon = {
-  coordinates: Array<InputMaybe<Array<InputMaybe<Scalars['Float']>>>>;
+  coordinates: Array<Array<Array<Scalars['Float']>>>;
   description?: InputMaybe<Scalars['String']>;
-  fillColor?: InputMaybe<Scalars['String']>;
+  hexcolor?: InputMaybe<Scalars['String']>;
   media?: InputMaybe<Array<InputMaybe<MediaInput>>>;
-  strokeColor?: InputMaybe<Scalars['String']>;
   title?: InputMaybe<Scalars['String']>;
   waterbody: Scalars['ID'];
 };
@@ -375,27 +363,14 @@ export type PendingContactInput = {
 
 export type Point = {
   __typename?: 'Point';
-  coordinates?: Maybe<Array<Maybe<Scalars['Float']>>>;
-  properties?: Maybe<PointProps>;
-  type?: Maybe<Scalars['String']>;
-};
-
-export type PointProps = {
-  __typename?: 'PointProps';
-  pinColor?: Maybe<Scalars['String']>;
+  coordinates: Array<Maybe<Scalars['Float']>>;
+  type: Scalars['String'];
 };
 
 export type Polygon = {
   __typename?: 'Polygon';
-  coordinates?: Maybe<Array<Maybe<Array<Maybe<Scalars['Float']>>>>>;
-  properties?: Maybe<PolygonProps>;
-  type?: Maybe<Scalars['String']>;
-};
-
-export type PolygonProps = {
-  __typename?: 'PolygonProps';
-  fillColor?: Maybe<Scalars['String']>;
-  strokeColor?: Maybe<Scalars['String']>;
+  coordinates: Array<Maybe<Array<Maybe<Scalars['Float']>>>>;
+  type: Scalars['String'];
 };
 
 export type Query = {
@@ -403,7 +378,6 @@ export type Query = {
   getCatch?: Maybe<Catch>;
   getCatches?: Maybe<Array<Maybe<Catch>>>;
   getLocation?: Maybe<Location>;
-  getLocations?: Maybe<Array<Maybe<Location>>>;
   getUser?: Maybe<User>;
   getUsers?: Maybe<Array<Maybe<User>>>;
   getWaterbodies?: Maybe<Array<Maybe<Waterbody>>>;
@@ -422,12 +396,7 @@ export type QueryGetCatchesArgs = {
 
 
 export type QueryGetLocationArgs = {
-  id: Scalars['ID'];
-};
-
-
-export type QueryGetLocationsArgs = {
-  ids?: InputMaybe<Array<InputMaybe<Scalars['ID']>>>;
+  id: Scalars['Int'];
 };
 
 
@@ -443,6 +412,8 @@ export type QueryGetUsersArgs = {
 
 export type QueryGetWaterbodiesArgs = {
   ids?: InputMaybe<Array<InputMaybe<Scalars['ID']>>>;
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -517,6 +488,16 @@ export enum WeightUnit {
   Lb = 'LB',
   Oz = 'OZ'
 }
+
+export type PointUpdate = {
+  coordinates: Array<Scalars['Float']>;
+  hexcolor?: InputMaybe<Scalars['String']>;
+};
+
+export type PolygonUpdate = {
+  coordinates: Array<InputMaybe<Array<InputMaybe<Array<InputMaybe<Scalars['Float']>>>>>>;
+  hexcolor?: InputMaybe<Scalars['String']>;
+};
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
@@ -606,8 +587,6 @@ export type ResolversTypes = ResolversObject<{
   Float: ResolverTypeWrapper<Scalars['Float']>;
   GUID: ResolverTypeWrapper<Scalars['GUID']>;
   Geojson: ResolverTypeWrapper<Omit<Geojson, 'geometry'> & { geometry?: Maybe<ResolversTypes['Geometry']> }>;
-  GeojsonPoint: GeojsonPoint;
-  GeojsonPolygon: GeojsonPolygon;
   Geometry: ResolversTypes['Point'] | ResolversTypes['Polygon'];
   HSL: ResolverTypeWrapper<Scalars['HSL']>;
   HSLA: ResolverTypeWrapper<Scalars['HSLA']>;
@@ -654,9 +633,7 @@ export type ResolversTypes = ResolversObject<{
   PendingContactInput: PendingContactInput;
   PhoneNumber: ResolverTypeWrapper<Scalars['PhoneNumber']>;
   Point: ResolverTypeWrapper<Point>;
-  PointProps: ResolverTypeWrapper<PointProps>;
   Polygon: ResolverTypeWrapper<Polygon>;
-  PolygonProps: ResolverTypeWrapper<PolygonProps>;
   Port: ResolverTypeWrapper<Scalars['Port']>;
   PositiveFloat: ResolverTypeWrapper<Scalars['PositiveFloat']>;
   PositiveInt: ResolverTypeWrapper<Scalars['PositiveInt']>;
@@ -684,6 +661,8 @@ export type ResolversTypes = ResolversObject<{
   WaterbodyMedia: ResolverTypeWrapper<WaterbodyMedia>;
   WeightInput: WeightInput;
   WeightUnit: WeightUnit;
+  pointUpdate: PointUpdate;
+  polygonUpdate: PolygonUpdate;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -706,8 +685,6 @@ export type ResolversParentTypes = ResolversObject<{
   Float: Scalars['Float'];
   GUID: Scalars['GUID'];
   Geojson: Omit<Geojson, 'geometry'> & { geometry?: Maybe<ResolversParentTypes['Geometry']> };
-  GeojsonPoint: GeojsonPoint;
-  GeojsonPolygon: GeojsonPolygon;
   Geometry: ResolversParentTypes['Point'] | ResolversParentTypes['Polygon'];
   HSL: Scalars['HSL'];
   HSLA: Scalars['HSLA'];
@@ -753,9 +730,7 @@ export type ResolversParentTypes = ResolversObject<{
   PendingContactInput: PendingContactInput;
   PhoneNumber: Scalars['PhoneNumber'];
   Point: Point;
-  PointProps: PointProps;
   Polygon: Polygon;
-  PolygonProps: PolygonProps;
   Port: Scalars['Port'];
   PositiveFloat: Scalars['PositiveFloat'];
   PositiveInt: Scalars['PositiveInt'];
@@ -781,6 +756,8 @@ export type ResolversParentTypes = ResolversObject<{
   Waterbody: IWaterbody;
   WaterbodyMedia: WaterbodyMedia;
   WeightInput: WeightInput;
+  pointUpdate: PointUpdate;
+  polygonUpdate: PolygonUpdate;
 }>;
 
 export type ConstraintDirectiveArgs = {
@@ -961,7 +938,7 @@ export type LocationResolvers<ContextType = Context, ParentType extends Resolver
   geojson?: Resolver<Maybe<ResolversTypes['Geojson']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -997,26 +974,26 @@ export type MediaResolvers<ContextType = Context, ParentType extends ResolversPa
 
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   acceptPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationAcceptPendingContactArgs, 'id'>>;
-  addCatchMedia?: Resolver<Maybe<ResolversTypes['CatchMedia']>, ParentType, ContextType, RequireFields<MutationAddCatchMediaArgs, 'id' | 'media'>>;
-  addLocationMedia?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationAddLocationMediaArgs, 'id' | 'media'>>;
-  addWaterbodyMedia?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType, RequireFields<MutationAddWaterbodyMediaArgs, 'media'>>;
-  bookmarkWaterbody?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, RequireFields<MutationBookmarkWaterbodyArgs, 'id'>>;
+  addCatchMedia?: Resolver<Maybe<Array<Maybe<ResolversTypes['CatchMedia']>>>, ParentType, ContextType, RequireFields<MutationAddCatchMediaArgs, 'id' | 'media'>>;
+  addLocationMedia?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType, RequireFields<MutationAddLocationMediaArgs, 'id' | 'media'>>;
+  addWaterbodyMedia?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType, RequireFields<MutationAddWaterbodyMediaArgs, 'id' | 'media'>>;
+  bookmarkWaterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType, RequireFields<MutationBookmarkWaterbodyArgs, 'id'>>;
   createCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationCreateCatchArgs, 'newCatch'>>;
-  createLocationPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, Partial<MutationCreateLocationPointArgs>>;
-  createLocationPolygon?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, Partial<MutationCreateLocationPolygonArgs>>;
+  createLocationPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationCreateLocationPointArgs, 'location'>>;
+  createLocationPolygon?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationCreateLocationPolygonArgs, 'location'>>;
   createPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationCreatePendingContactArgs, 'id'>>;
   deleteCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationDeleteCatchArgs, 'id'>>;
   deleteContact?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationDeleteContactArgs, 'id'>>;
-  deleteLocation?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType, RequireFields<MutationDeleteLocationArgs, 'id'>>;
+  deleteLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationDeleteLocationArgs, 'id'>>;
   deletePendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationDeletePendingContactArgs, 'id'>>;
   rejectPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationRejectPendingContactArgs, 'id'>>;
   removeCatchMedia?: Resolver<Maybe<ResolversTypes['CatchMedia']>, ParentType, ContextType, RequireFields<MutationRemoveCatchMediaArgs, 'id'>>;
-  removeLocationMedia?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationRemoveLocationMediaArgs, 'id' | 'mediaId'>>;
+  removeLocationMedia?: Resolver<Maybe<ResolversTypes['LocationMedia']>, ParentType, ContextType, RequireFields<MutationRemoveLocationMediaArgs, 'id'>>;
   updateCatchDetails?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchDetailsArgs, 'details' | 'id'>>;
   updateCatchLocation?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchLocationArgs, 'coords' | 'id'>>;
-  updateGeojsonPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateGeojsonPointArgs, 'id'>>;
-  updateGeojsonPolygon?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateGeojsonPolygonArgs, 'id'>>;
-  updateLocationDetails?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateLocationDetailsArgs, 'id'>>;
+  updateGeojsonPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateGeojsonPointArgs, 'id' | 'point'>>;
+  updateGeojsonPolygon?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateGeojsonPolygonArgs, 'id' | 'polygon'>>;
+  updateLocationDetails?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateLocationDetailsArgs, 'details' | 'id'>>;
   updateUserAvatar?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserAvatarArgs, 'url'>>;
   updateUserDetails?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserDetailsArgs, 'details'>>;
 }>;
@@ -1065,27 +1042,14 @@ export interface PhoneNumberScalarConfig extends GraphQLScalarTypeConfig<Resolve
 }
 
 export type PointResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Point'] = ResolversParentTypes['Point']> = ResolversObject<{
-  coordinates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Float']>>>, ParentType, ContextType>;
-  properties?: Resolver<Maybe<ResolversTypes['PointProps']>, ParentType, ContextType>;
-  type?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type PointPropsResolvers<ContextType = Context, ParentType extends ResolversParentTypes['PointProps'] = ResolversParentTypes['PointProps']> = ResolversObject<{
-  pinColor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coordinates?: Resolver<Array<Maybe<ResolversTypes['Float']>>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type PolygonResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Polygon'] = ResolversParentTypes['Polygon']> = ResolversObject<{
-  coordinates?: Resolver<Maybe<Array<Maybe<Array<Maybe<ResolversTypes['Float']>>>>>, ParentType, ContextType>;
-  properties?: Resolver<Maybe<ResolversTypes['PolygonProps']>, ParentType, ContextType>;
-  type?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type PolygonPropsResolvers<ContextType = Context, ParentType extends ResolversParentTypes['PolygonProps'] = ResolversParentTypes['PolygonProps']> = ResolversObject<{
-  fillColor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  strokeColor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  coordinates?: Resolver<Array<Maybe<Array<Maybe<ResolversTypes['Float']>>>>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1109,7 +1073,6 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   getCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<QueryGetCatchArgs, 'id'>>;
   getCatches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryGetCatchesArgs>>;
   getLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<QueryGetLocationArgs, 'id'>>;
-  getLocations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType, Partial<QueryGetLocationsArgs>>;
   getUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryGetUserArgs, 'id'>>;
   getUsers?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<QueryGetUsersArgs>>;
   getWaterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, Partial<QueryGetWaterbodiesArgs>>;
@@ -1268,9 +1231,7 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   PendingContact?: PendingContactResolvers<ContextType>;
   PhoneNumber?: GraphQLScalarType;
   Point?: PointResolvers<ContextType>;
-  PointProps?: PointPropsResolvers<ContextType>;
   Polygon?: PolygonResolvers<ContextType>;
-  PolygonProps?: PolygonPropsResolvers<ContextType>;
   Port?: GraphQLScalarType;
   PositiveFloat?: GraphQLScalarType;
   PositiveInt?: GraphQLScalarType;

@@ -22,3 +22,10 @@ export interface WaterbodyMedia {
     url: string,
     created_at: Date
 }
+
+export interface NewWaterbodyMedia {
+    waterbody: string,
+    user: number,
+    key: string,
+    url: string
+}
