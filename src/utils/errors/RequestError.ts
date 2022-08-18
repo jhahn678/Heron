@@ -2,7 +2,7 @@ type ErrorType =
 | 'DUPLICATE_CONTACT' | 'DUPLICATE_CONTACT_REQUEST'
 | 'DELETE_NOT_FOUND' | 'RESOURCE_NOT_FOUND'
 | 'TRANSACTION_NOT_FOUND' | 'REQUEST_UNDEFINED'
-| 'REQUEST_FAILED'
+| 'REQUEST_FAILED' | 'INVALID_REFERENCE' | 'COORDS_INVALID'
 
 export class RequestError extends Error{
     status: number = 400;
@@ -29,6 +29,12 @@ export class RequestError extends Error{
                 break;
             case 'REQUEST_FAILED':
                 this.message = 'The provided request could not be completed';
+                break;
+            case 'INVALID_REFERENCE':
+                this.message = 'The reference your provided to another resource could not be found'
+                break;
+            case 'COORDS_INVALID':
+                this.message = 'The coordinates provided are invalid';
                 break;
         }
     }
