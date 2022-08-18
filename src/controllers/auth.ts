@@ -5,7 +5,6 @@ import { AuthError } from "../utils/errors/AuthError"
 import Joi from "joi"
 import { Request } from 'express'
 import { createAuthToken } from "../utils/auth/token"
-import { IUser } from "../types/User"
 
 
 interface LoginRequest {
@@ -13,7 +12,8 @@ interface LoginRequest {
     password: string
 }
 
-export const loginUser = asyncWrapper(async (req, res, next) => {
+
+export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res, next) => {
     const { identifier, password } = req.body;
     if(identifier.includes('@' && '.')){
         const user = await knex('users').where('email', identifier).first()
@@ -88,8 +88,14 @@ export const resetPassword = asyncWrapper(async (req, res, next) => {
 
 })
 
-export const deleteAccount = asyncWrapper(async (req, res, next) => {
+interface DeleteUser {
+    id: number
+}
 
+export const deleteAccount = asyncWrapper(async (req: Request<{},{},DeleteUser>, res, next) => {
+    const { id } = req.body;
+    await knex('users').where({ id }).del()
+    res.status(204).json({ message: `User with id ${id} deleted`})
 })
 
 interface CheckEmailQuery {
