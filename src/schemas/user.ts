@@ -1,7 +1,7 @@
 import { gql } from 'apollo-server-express'
 import { x } from 'joi'
 import { AuthMechanism } from 'mongodb'
-import knex from '../db/knex'
+import knex from '../configs/knex'
 import { PendingContact, Resolvers, Status } from '../types/graphql'
 import { IPendingContact } from '../types/User'
 import { AuthError } from '../utils/errors/AuthError'

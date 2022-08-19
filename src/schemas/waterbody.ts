@@ -1,8 +1,10 @@
 import { gql } from 'apollo-server-express'
-import knex from '../db/knex'
+import knex from '../configs/knex'
 import { Resolvers } from '../types/graphql'
 import { AuthError } from '../utils/errors/AuthError'
 import { RequestError } from '../utils/errors/RequestError'
+import { UploadError } from '../utils/errors/UploadError'
+import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
 export const typeDef =  gql`
     type Waterbody {
@@ -46,10 +48,15 @@ export const resolver: Resolvers = {
         // bookmarkWaterbody: async (_, { id }, { dataSources }) => {},
         addWaterbodyMedia: async (_, { id, media }, { auth, dataSources }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+
             const waterbody = await dataSources.waterbodies.getWaterbody(id);
             if(!waterbody) throw new RequestError('TRANSACTION_NOT_FOUND')
-            const medias = media.map(x => ({ user: auth, waterbody: id, ...x }))
-            const res = await knex('waterbodyMedia').insert(medias).returning('*')
+
+            const valid = media.filter(x => validateMediaUrl(x.url))
+            const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
+            if(uploads.length === 0) throw new UploadError('INVALID_URL')
+            
+            const res = await knex('waterbodyMedia').insert(uploads).returning('*')
             return res;
         },
     },
@@ -62,5 +69,9 @@ export const resolver: Resolvers = {
             const locations = await knex('locations').where({ waterbody: _id })
             return locations;
         },
+        media: async ({ _id }) => {
+            const media = await knex('waterbodyMedia').where({ waterbody: _id })
+            return media;
+        }
     }
 }

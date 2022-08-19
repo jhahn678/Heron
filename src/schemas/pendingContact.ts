@@ -1,6 +1,6 @@
 import { gql } from 'apollo-server-express'
 import { Resolvers, Status } from '../types/graphql'
-import knex from '../db/knex'
+import knex from '../configs/knex'
 import { AuthError } from '../utils/errors/AuthError'
 import { RequestError } from '../utils/errors/RequestError'
 
