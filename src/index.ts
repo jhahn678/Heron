@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors'
 import routes from './routes'
 import { MongoClient } from 'mongodb';
-import { Waterbodies } from './db/mongo';
+import { Waterbodies } from './configs/mongo';
 import { ApolloServer } from 'apollo-server-express';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import {
