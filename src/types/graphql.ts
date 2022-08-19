@@ -205,7 +205,7 @@ export type MutationAcceptPendingContactArgs = {
 
 export type MutationAddCatchMediaArgs = {
   id: Scalars['Int'];
-  media: Array<InputMaybe<MediaInput>>;
+  media: Array<MediaInput>;
 };
 
 
@@ -324,7 +324,7 @@ export type NewCatch = {
   coordinates?: InputMaybe<Array<InputMaybe<Scalars['Float']>>>;
   description?: InputMaybe<Scalars['String']>;
   length?: InputMaybe<LengthInput>;
-  media?: InputMaybe<Array<InputMaybe<MediaInput>>>;
+  media?: InputMaybe<Array<MediaInput>>;
   rig?: InputMaybe<Scalars['String']>;
   species?: InputMaybe<Scalars['String']>;
   title?: InputMaybe<Scalars['String']>;
@@ -336,7 +336,7 @@ export type NewLocationPoint = {
   coordinates: Array<InputMaybe<Scalars['Float']>>;
   description?: InputMaybe<Scalars['String']>;
   hexcolor?: InputMaybe<Scalars['String']>;
-  media?: InputMaybe<Array<InputMaybe<MediaInput>>>;
+  media?: InputMaybe<Array<MediaInput>>;
   title?: InputMaybe<Scalars['String']>;
   waterbody: Scalars['ID'];
 };
@@ -345,7 +345,7 @@ export type NewLocationPolygon = {
   coordinates: Array<Array<Array<Scalars['Float']>>>;
   description?: InputMaybe<Scalars['String']>;
   hexcolor?: InputMaybe<Scalars['String']>;
-  media?: InputMaybe<Array<InputMaybe<MediaInput>>>;
+  media?: InputMaybe<Array<MediaInput>>;
   title?: InputMaybe<Scalars['String']>;
   waterbody: Scalars['ID'];
 };
@@ -495,7 +495,7 @@ export type PointUpdate = {
 };
 
 export type PolygonUpdate = {
-  coordinates: Array<InputMaybe<Array<InputMaybe<Array<InputMaybe<Scalars['Float']>>>>>>;
+  coordinates: Array<Array<Array<Scalars['Float']>>>;
   hexcolor?: InputMaybe<Scalars['String']>;
 };
 
