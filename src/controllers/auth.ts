@@ -1,5 +1,5 @@
 import { asyncWrapper } from "../utils/errors/asyncWrapper"
-import knex from "../db/knex"
+import knex from "../configs/knex"
 import { hashPassword, comparePasswords } from '../utils/auth/passwords'
 import { AuthError } from "../utils/errors/AuthError"
 import Joi from "joi"
