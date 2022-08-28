@@ -8,11 +8,12 @@ import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
 export const typeDef =  gql`
     type Waterbody {
+        id: Int
         name: String
-        states: [String]
         classification: String
         country: String
-        counties: [String]
+        admin_one: [String]
+        admin_two: [String]
         ccode: String
         subregion: String
         catches: [Catch]
@@ -21,13 +22,14 @@ export const typeDef =  gql`
     }
 
     type Query {
-        getWaterbody(id: ID!): Waterbody
-        getWaterbodies(ids: [ID], offset: Int, limit: Int): [Waterbody]
+        getWaterbody(id: Int!): Waterbody
+        getWaterbodies(ids: [Int], offset: Int, limit: Int): [Waterbody]
     }
 
     type Mutation {
-        addWaterbodyMedia(id: ID!, media: [MediaInput!]!): [WaterbodyMedia]
-        bookmarkWaterbody(id: ID!): Waterbody
+        addWaterbodyMedia(id: Int!, media: [MediaInput!]!): [WaterbodyMedia]
+        saveWaterbody(id: Int!): Int
+        unsaveWaterbody(id: Int!): Int
     }
 `
 
@@ -45,7 +47,25 @@ export const resolver: Resolvers = {
         },
     },
     Mutation: {
-        // bookmarkWaterbody: async (_, { id }, { dataSources }) => {},
+        saveWaterbody: async (_, { id }, { dataSources, auth }) => {
+            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+
+            const waterbody = await dataSources.waterbodies.getWaterbody(id);
+            if(!waterbody) throw new RequestError('RESOURCE_NOT_FOUND')
+
+            const res = await knex('savedWaterbodies')
+                .insert({ user: auth, waterbody: id })
+                .returning('waterbody')
+            return res[0].waterbody
+        },
+        unsaveWaterbody: async (_, { id }, { auth }) => {
+            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+
+            const res = await knex('savedWaterbodies')
+                .where({ user: auth, waterbody: id })
+                .del().returning('waterbody')
+            return res[0].waterbody
+        },
         addWaterbodyMedia: async (_, { id, media }, { auth, dataSources }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
 
@@ -61,16 +81,16 @@ export const resolver: Resolvers = {
         },
     },
     Waterbody: {
-        catches: async ({ _id }) => {
-            const catches = await knex('catches').where({ waterbody: _id })
+        catches: async ({ id }) => {
+            const catches = await knex('catches').where({ waterbody: id })
             return catches;
         },
-        locations: async ({ _id }) => {
-            const locations = await knex('locations').where({ waterbody: _id })
+        locations: async ({ id }) => {
+            const locations = await knex('locations').where({ waterbody: id })
             return locations;
         },
-        media: async ({ _id }) => {
-            const media = await knex('waterbodyMedia').where({ waterbody: _id })
+        media: async ({ id }) => {
+            const media = await knex('waterbodyMedia').where({ waterbody: id })
             return media;
         }
     }

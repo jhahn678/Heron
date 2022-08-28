@@ -3,8 +3,7 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors'
 import routes from './routes'
-import { MongoClient } from 'mongodb';
-import { Waterbodies } from './configs/mongo';
+import { Waterbodies, knexConfig } from './configs/waterbodies';
 import { ApolloServer } from 'apollo-server-express';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import {
@@ -21,9 +20,6 @@ async function startServer(){
     const app = express()
     const httpServer = http.createServer(app)
 
-    const client = new MongoClient(process.env.MONGO_URI!)
-    client.connect().then(() => console.log('🚀 Connected to McMongoDB'))
-
     const schema = constraintDirective()(makeExecutableSchema({ typeDefs, resolvers }))
 
     const server = new ApolloServer({
@@ -31,7 +27,7 @@ async function startServer(){
         csrfPrevention: true,
         cache: 'bounded',
         dataSources: () => ({
-            waterbodies: new Waterbodies(client.db().collection('us_waterbodies'))
+            waterbodies: new Waterbodies(knexConfig)
         }),
         context: ({ req }) => {
             const { authorization } = req.headers;

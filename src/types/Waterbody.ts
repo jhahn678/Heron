@@ -1,30 +1,39 @@
+import { AllGeoJSON } from "@turf/helpers"
 import { GeometryCollection } from "geojson"
 
 export interface IWaterbody {
-    _id: string,
+    id: number,
     name: string
-    states: string[]
     classification: string
     weight: number
     country: string
-    counties: string[]
+    subregion: string | null
     ccode: string
-    subregion: string
-    geometries: string[]
+    admin_one: string[]
+    admin_two: string[]
     simplified_geometries: GeometryCollection
+}
+
+export interface IWaterbodyWithGeometries extends IWaterbody{
+    geometries: AllGeoJSON[]
 }
 
 export interface WaterbodyMedia {
     id: number,
-    waterbody: string,
+    waterbody: number,
     user: number,
     key: string,
     url: string,
     created_at: Date
 }
 
+export interface ISavedWaterbody {
+    user: number,
+    waterbody: number
+}
+
 export interface NewWaterbodyMedia {
-    waterbody: string,
+    waterbody: number,
     user: number,
     key: string,
     url: string
