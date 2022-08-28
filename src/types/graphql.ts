@@ -83,10 +83,10 @@ export type Catch = {
   __typename?: 'Catch';
   created_at?: Maybe<Scalars['DateTime']>;
   description?: Maybe<Scalars['String']>;
+  geom?: Maybe<Point>;
   id: Scalars['Int'];
   length?: Maybe<Scalars['Float']>;
   length_unit?: Maybe<LengthUnit>;
-  location?: Maybe<Point>;
   media?: Maybe<Array<Maybe<CatchMedia>>>;
   rig?: Maybe<Scalars['String']>;
   species?: Maybe<Scalars['String']>;
@@ -138,6 +138,7 @@ export type Location = {
   __typename?: 'Location';
   description?: Maybe<Scalars['String']>;
   geojson?: Maybe<Geojson>;
+  id: Scalars['Int'];
   media?: Maybe<Array<Maybe<LocationMedia>>>;
   title?: Maybe<Scalars['String']>;
   user: User;
@@ -802,10 +803,10 @@ export interface ByteScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 export type CatchResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Catch'] = ResolversParentTypes['Catch']> = ResolversObject<{
   created_at?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  geom?: Resolver<Maybe<ResolversTypes['Point']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   length?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   length_unit?: Resolver<Maybe<ResolversTypes['LengthUnit']>, ParentType, ContextType>;
-  location?: Resolver<Maybe<ResolversTypes['Point']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['CatchMedia']>>>, ParentType, ContextType>;
   rig?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   species?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -944,6 +945,7 @@ export interface LocaleScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
 export type LocationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Location'] = ResolversParentTypes['Location']> = ResolversObject<{
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   geojson?: Resolver<Maybe<ResolversTypes['Geojson']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;

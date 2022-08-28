@@ -17,7 +17,7 @@ export const typeDef =  gql`
         id: Int!,
         user: User!,
         waterbody: Waterbody,
-        location: Point,
+        geom: Point,
         title: String,
         description: String,
         species: String,

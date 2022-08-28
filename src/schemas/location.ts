@@ -14,6 +14,7 @@ import * as turf from '@turf/helpers'
 
 export const typeDef =  gql`
     type Location {
+        id: Int!,
         title: String,
         description: String,
         user: User!
