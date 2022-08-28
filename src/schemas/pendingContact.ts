@@ -37,7 +37,7 @@ export const resolver: Resolvers = {
             //user_one is always stored as the lesser ID
             const user_one = id < auth ? id : auth;
             const user_two = id < auth ? auth : id
-            const contact = await knex('contacts').where({ user_one, user_two})
+            const contact = await knex('contacts').where({ user_one, user_two}).first()
             if(contact) throw new RequestError('DUPLICATE_CONTACT')
             const pending = await knex('pendingContacts')
                 .where({ user_recipient: auth, user_sending: id })
