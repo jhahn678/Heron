@@ -117,4 +117,4 @@ export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},
     const { username } = req.query;
     const user = await knex('users').where('username', username).first()
     res.status(200).json({ username, available: Boolean(user) })
-})
+});
