@@ -1,4 +1,4 @@
-import { Waterbodies } from "../configs/mongo"
+import { Waterbodies } from "../configs/waterbodies"
 
 export interface DataSources {
     waterbodies: Waterbodies

@@ -57,7 +57,7 @@ export const typeDef =  gql`
     input NewLocationPoint {
         title: String
         description: String
-        waterbody: ID!
+        waterbody: Int!
         media: [MediaInput!]
         coordinates: [Float]!
         hexcolor: String
@@ -66,7 +66,7 @@ export const typeDef =  gql`
     input NewLocationPolygon {
         title: String
         description: String
-        waterbody: ID!
+        waterbody: Int!
         media: [MediaInput!]
         coordinates: [[[Float!]!]!]!
         hexcolor: String

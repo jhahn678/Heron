@@ -63,7 +63,7 @@ export const typeDef =  gql`
     }
 
     input NewCatch {
-        waterbody: ID!
+        waterbody: Int
         coordinates: [Float]    
         title: String,          @constraint(maxLength: 100)
         description: String,    @constraint(maxLength: 255)
@@ -116,13 +116,16 @@ export const resolver: Resolvers = {
                 coordinates, description, waterbody, 
                 species, weight, length, media, title, rig 
             } = newCatch;
+
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED');
-            const exists = await dataSources.waterbodies.getWaterbody(waterbody)
-            if(!exists) throw new RequestError('RESOURCE_NOT_FOUND')
-            const catchObj: NewCatchBuilder = {
-                user: auth,
-                waterbody
+            const catchObj: NewCatchBuilder = { user: auth }
+
+            if(waterbody){
+                const exists = await dataSources.waterbodies.getWaterbody(waterbody)
+                if(!exists) throw new RequestError('RESOURCE_NOT_FOUND')
+                catchObj['waterbody'] = waterbody;
             }
+
             if(title) catchObj['title'] = title;
             if(description) catchObj['description'] = description;
             if(species) catchObj['species'] = species;
@@ -232,7 +235,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         waterbody: async ({ waterbody: id }, _, { dataSources }) => {
-            const waterbody = await dataSources.waterbodies.findOneById(id)
+            const waterbody = await dataSources.waterbodies.getWaterbody(id)
             return waterbody;
         },
         media: async ({ id }) => {
@@ -240,3 +243,8 @@ export const resolver: Resolvers = {
         }
     }
 }
+
+
+
+
+

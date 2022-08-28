@@ -4,7 +4,7 @@ import { Knex } from "knex"
 export interface ILocation {
     id: number,
     user: number,
-    waterbody: string,
+    waterbody: number,
     title: string,
     description: string,
     geom: Point | Polygon | LineString
@@ -22,7 +22,7 @@ export interface LocationMedia {
 
 export interface NewLocationObj {
     user: number,
-    waterbody: string,
+    waterbody: number,
     title?: string,
     description?: string,
     geom?: Knex.Raw,

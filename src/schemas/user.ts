@@ -1,8 +1,6 @@
 import { gql } from 'apollo-server-express'
-import { x } from 'joi'
-import { AuthMechanism } from 'mongodb'
 import knex from '../configs/knex'
-import { PendingContact, Resolvers, Status } from '../types/graphql'
+import { Resolvers } from '../types/graphql'
 import { IPendingContact } from '../types/User'
 import { AuthError } from '../utils/errors/AuthError'
 import { RequestError } from '../utils/errors/RequestError'
@@ -25,6 +23,7 @@ export const typeDef =  gql `
         total_locations: Int
         catches: [Catch]
         total_catches: Int
+        saved_waterbodies: [Waterbody]
         created_at: DateTime
         updated_at: DateTime
     }
@@ -93,8 +92,7 @@ export const resolver: Resolvers = {
     },
     User: {
         // fullname: ({ firstname, lastname }) => `${firstname} ${lastname}`,
-        contacts: async ({ id }, _, { auth }) => {
-            if(auth !== id) throw new AuthError('UNAUTHORIZED')
+        contacts: async ({ id }) => {
             const contacts = await knex('contacts')
                 .select('users.*')
                 .join('users', 'contacts.user_two', '=', 'users.id')
@@ -107,7 +105,7 @@ export const resolver: Resolvers = {
                 })
             return contacts;
         },
-        locations: async ({ id }, _, { auth }) => {
+        locations: async ({ id }, __, { auth }) => {
             if(auth !== id) throw new AuthError('UNAUTHORIZED')
             const locations = await knex('locations').where('user', id)
             return locations;
@@ -125,8 +123,8 @@ export const resolver: Resolvers = {
                 })
             return pending;
         },
-        total_contacts: async ({ id }, _, { auth }) => {
-            if(auth !== id) throw new AuthError('UNAUTHORIZED')
+        total_contacts: async ({ id }) => {
+           
             const res = await knex('contacts').where('user_one', id).orWhere('user_two', id).count()
             const { count } = res[0];
             if(typeof count === 'string') return parseInt(count);
@@ -143,6 +141,12 @@ export const resolver: Resolvers = {
             const { count } = res[0];
             if(typeof count === 'string') return parseInt(count);
             return count;
-        }
+        },
+        saved_waterbodies: async ({ id }, _, { dataSources }) => {
+            const res = await knex('savedWaterbodies').where({ user: id })
+            const ids = res.map(x => x.waterbody)
+            if(ids.length === 0) return []
+            return (await dataSources.waterbodies.getWaterbodies({ ids }))
+        } 
     }
 }

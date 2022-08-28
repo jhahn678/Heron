@@ -29,7 +29,7 @@ export const typeDef =  gql`
         user: Int!
         url: String!
         created_at: DateTime!
-        waterbody: String!
+        waterbody: Int!
     }
 
     input MediaInput {

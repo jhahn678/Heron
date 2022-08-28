@@ -5,7 +5,7 @@ import { Knex } from 'knex'
 export interface ICatch {
     id: number,
     user: number,
-    waterbody: string,
+    waterbody: number,
     geom: Point | Knex.Raw,
     title: string,
     description: string,
@@ -30,7 +30,7 @@ export interface CatchMedia {
 
 export interface NewCatchBuilder {
     user: number,
-    waterbody: string,
+    waterbody?: number,
     /** FORMAT:   ST_SetSRID(ST_Point(lng, lat), 4326) */
     geom?: any
     title?: string,
