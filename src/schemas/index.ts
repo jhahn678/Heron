@@ -21,29 +21,40 @@ import {
     typeDef as waterbodyTypeDef,
     resolver as waterbodyResolver
 } from './waterbody'
+import { 
+    typeDef as enumTypeDef,
+    resolver as enumResolver
+} from './enums'
+import {
+    typeDef as GeoJsonTypeDef,
+    resolver as geojsonResolver
+} from './geojson'
 
 import { typeDefs as scalarTypeDefs } from "graphql-scalars";
 import { mergeTypeDefs, mergeResolvers } from "@graphql-tools/merge";
 import { constraintDirectiveTypeDefs } from 'graphql-constraint-directive';
 
-
 const typesArray = [
-    constraintDirectiveTypeDefs,
     ...scalarTypeDefs,
+    constraintDirectiveTypeDefs,
+    enumTypeDef,
     userTypeDef,
     pendingContactTypeDef,
     mediaTypeDef,
     catchTypeDef,
     locationTypeDef,
-    waterbodyTypeDef
+    waterbodyTypeDef,
+    GeoJsonTypeDef
 ]
 
 const resolversArray = [
+    enumResolver,
     userResolver,
     pendingContactResolver,
     catchResolver,
+    waterbodyResolver,
     locationResolver,
-    waterbodyResolver
+    geojsonResolver
 ]
 
 export const typeDefs = mergeTypeDefs(typesArray)

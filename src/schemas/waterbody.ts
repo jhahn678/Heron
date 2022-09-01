@@ -1,12 +1,12 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
-import knex from '../configs/knex'
-import { Resolvers } from '../types/graphql'
-import { AuthError } from '../utils/errors/AuthError'
+import knex, { st } from '../configs/knex'
+import { Resolvers, Sort } from '../types/graphql'
 import { RequestError } from '../utils/errors/RequestError'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
 export const typeDef =  gql`
+
     type Waterbody {
         id: Int
         name: String
@@ -16,14 +16,28 @@ export const typeDef =  gql`
         admin_two: [String]
         ccode: String
         subregion: String
+        geometries: Geometry
         catches: [Catch]
         locations: [Location]
         media: [WaterbodyMedia]
+        distance: Float
+        rank: Float
     }
 
     type Query {
         getWaterbody(id: Int!): Waterbody
-        getWaterbodies(ids: [Int!], offset: Int, limit: Int): [Waterbody]
+        getWaterbodies(value: String, classifications: [ClassificationEnum!], adminOne: [AdminOneEnum!], queryLocation: QueryLocation, offset: Int, limit: Int, sort: Sort): [Waterbody]
+    }
+
+    enum Sort {
+        rank
+        distance
+    }
+
+    input QueryLocation {
+        latitude: Float!
+        longitude: Float!,
+        withinMeters: Int!
     }
 
     type Mutation {
@@ -41,10 +55,30 @@ export const resolver: Resolvers = {
                 .first()
             return result
         },
-        getWaterbodies: async (_, { offset, limit }) => {
-            const results = await knex('waterbodies')
-                .offset(offset || 0)
-                .limit(limit || 20)
+        getWaterbodies: async (_, args) => {
+            const { value, classifications, adminOne, queryLocation, offset, limit, sort } = args;
+            const query = knex('waterbodies')
+            if(value) query.whereILike('name', (value+'%'))
+            if(classifications) query.whereIn('classification', classifications)
+            if(adminOne) query.whereRaw(`admin_one && array[${adminOne.map(() => '?').join(',')}]::varchar[]`, adminOne)
+            if(queryLocation) {
+                const { latitude, longitude, withinMeters } = queryLocation;
+                const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
+                query.select('id', 'name', 'classification', 'country', 'ccode', 
+                    'admin_one', 'admin_two', 'subregion', 'weight', 'oid', 
+                    knex.raw('simplified_geometries <-> ? as distance', point), 
+                    knex.raw('rank_result(simplified_geometries <-> ?, weight, ?) as rank', [point, withinMeters])
+                )
+                query.where(st.dwithin('simplified_geometries', point, withinMeters, false))
+                if(sort === Sort.Distance){
+                    query.orderBy('distance', 'asc')
+                }else{
+                    query.orderBy('rank', 'desc')
+                }
+            }
+            query.offset(offset || 0)
+            query.limit(limit || 20)
+            const results = await query
             return results
         },
     },
@@ -83,6 +117,14 @@ export const resolver: Resolvers = {
         },
     },
     Waterbody: {
+        geometries: async ({ id: waterbody }) => {
+            const geometries = knex.raw('st_asgeojson(st_collect(st_transform(geom, 4326)))::json')
+            const result = await knex('geometries')
+                .where({ waterbody })
+                .select({ geometries })
+                .first()
+            if(result) return result.geometries;
+        },
         catches: async ({ id }) => {
             const catches = await knex('catches').where({ waterbody: id })
             return catches;

@@ -13,6 +13,7 @@ const { S3_BUCKET_NAME } = process.env;
 import * as turf from '@turf/helpers'
 
 export const typeDef =  gql`
+
     type Location {
         id: Int!,
         title: String,
@@ -20,24 +21,7 @@ export const typeDef =  gql`
         user: User!
         waterbody: Waterbody
         media: [LocationMedia]
-        geojson: Geojson
-    }
-
-    type Geojson {
-        type: String,
-        geometry: Geometry
-    }
-
-    union Geometry = Point | Polygon
-
-    type Point {
-        type: String!
-        coordinates: [Float]!
-    }
-
-    type Polygon {
-        type: String!
-        coordinates: [[Float]]!
+        geom: Geometry
     }
 
     type Query {
