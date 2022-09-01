@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express'
+import { AuthenticationError, gql } from 'apollo-server-express'
 import knex from '../configs/knex'
 import { Resolvers } from '../types/graphql'
 import { AuthError } from '../utils/errors/AuthError'
@@ -23,7 +23,7 @@ export const typeDef =  gql`
 
     type Query {
         getWaterbody(id: Int!): Waterbody
-        getWaterbodies(ids: [Int], offset: Int, limit: Int): [Waterbody]
+        getWaterbodies(ids: [Int!], offset: Int, limit: Int): [Waterbody]
     }
 
     type Mutation {
@@ -35,22 +35,24 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
-        getWaterbody: async (_, { id }, { dataSources }) => {
-            return (await dataSources.waterbodies.getWaterbody(id))
+        getWaterbody: async (_, { id }) => {
+            const result = await knex('waterbodies')
+                .where('id', id)
+                .first()
+            return result
         },
-        getWaterbodies: async (_, { ids, offset, limit }, { dataSources }) => {
-            if(ids && ids.length > 0) {
-                return (await dataSources.waterbodies.getWaterbodies({ ids }))
-            }
-            const params = { offset: offset || 0, limit: limit || 20 }
-            return (await dataSources.waterbodies.getWaterbodies(params))
+        getWaterbodies: async (_, { offset, limit }) => {
+            const results = await knex('waterbodies')
+                .offset(offset || 0)
+                .limit(limit || 20)
+            return results
         },
     },
     Mutation: {
-        saveWaterbody: async (_, { id }, { dataSources, auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+        saveWaterbody: async (_, { id }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const waterbody = await dataSources.waterbodies.getWaterbody(id);
+            const waterbody = await knex('waterbodies').where({ id }).first()
             if(!waterbody) throw new RequestError('RESOURCE_NOT_FOUND')
 
             const res = await knex('savedWaterbodies')
@@ -59,7 +61,7 @@ export const resolver: Resolvers = {
             return res[0].waterbody
         },
         unsaveWaterbody: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const res = await knex('savedWaterbodies')
                 .where({ user: auth, waterbody: id })
@@ -67,9 +69,9 @@ export const resolver: Resolvers = {
             return res[0].waterbody
         },
         addWaterbodyMedia: async (_, { id, media }, { auth, dataSources }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const waterbody = await dataSources.waterbodies.getWaterbody(id);
+            const waterbody = await knex('waterbodies').where({ id }).first()
             if(!waterbody) throw new RequestError('TRANSACTION_NOT_FOUND')
 
             const valid = media.filter(x => validateMediaUrl(x.url))

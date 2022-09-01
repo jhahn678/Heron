@@ -1,4 +1,5 @@
 import { gql } from 'apollo-server-express'
+import { AuthenticationError} from 'apollo-server-core'
 import { Resolvers } from '../types/graphql'
 import knex, { st } from '../configs/knex'
 import { AuthError } from '../utils/errors/AuthError'
@@ -111,17 +112,17 @@ export const resolver: Resolvers = {
         }
     },
     Mutation: {
-        createCatch: async (_, { newCatch }, { auth, dataSources }) => {
+        createCatch: async (_, { newCatch }, { auth }) => {
             const { 
                 coordinates, description, waterbody, 
                 species, weight, length, media, title, rig 
             } = newCatch;
 
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED');
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const catchObj: NewCatchBuilder = { user: auth }
 
             if(waterbody){
-                const exists = await dataSources.waterbodies.getWaterbody(waterbody)
+                const exists = await knex('waterbodies').where({ id: waterbody }).first()
                 if(!exists) throw new RequestError('RESOURCE_NOT_FOUND')
                 catchObj['waterbody'] = waterbody;
             }
@@ -153,7 +154,7 @@ export const resolver: Resolvers = {
             return res[0]
         },
         updateCatchDetails: async (_, { id, details }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { weight, length, ...rest } = details;
             const update: CatchUpdateBuilder = {};
@@ -176,7 +177,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         updateCatchLocation: async (_, { id, coords }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             if(!coords || !validatePointCoordinates(coords)) {
                 throw new RequestError('REQUEST_UNDEFINED')
             }
@@ -190,7 +191,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         addCatchMedia: async (_, { id, media }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const valid = media.filter(x => validateMediaUrl(x.url))
             const uploads = valid.map(x => ({ user: auth, catch: id, ...x }))
@@ -202,7 +203,7 @@ export const resolver: Resolvers = {
             return res;
         },
         removeCatchMedia: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const res = await knex('catchMedia').where({ id, user: auth }).del().returning('*')
             if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
@@ -214,7 +215,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         deleteCatch: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const res = await knex('catches').where({ id, user: auth }).del().returning('*')
             if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
@@ -234,9 +235,9 @@ export const resolver: Resolvers = {
             const res = await knex('users').where({ id })
             return res[0];
         },
-        waterbody: async ({ waterbody: id }, _, { dataSources }) => {
-            const waterbody = await dataSources.waterbodies.getWaterbody(id)
-            return waterbody;
+        waterbody: async ({ waterbody: id }) => {
+            const result = await knex('waterbodies').where({ id }).first()
+            return result;
         },
         media: async ({ id }) => {
             return (await knex('catchMedia').where({ id }))

@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express'
+import { AuthenticationError, gql } from 'apollo-server-express'
 import { Resolvers, Status } from '../types/graphql'
 import knex from '../configs/knex'
 import { AuthError } from '../utils/errors/AuthError'
@@ -33,7 +33,7 @@ export const resolver: Resolvers = {
     Mutation: {
         /** @TODO Need to test error handling on contact request that was already sent by user */
         createPendingContact: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             //user_one is always stored as the lesser ID
             const user_one = id < auth ? id : auth;
             const user_two = id < auth ? auth : id
@@ -48,7 +48,7 @@ export const resolver: Resolvers = {
             return result[0];
         },
         deletePendingContact: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const res = await knex('pendingContacts')
                 .where({ user_sending: auth, user_recipient: id })
                 .del().returning('*')
@@ -56,7 +56,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         acceptPendingContact: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const res = await knex('pendingContacts')
                 .where({ user_recipient: auth, user_sending: id })
                 .del().returning('*')
@@ -67,7 +67,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         rejectPendingContact: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const res = await knex('pendingContacts')
                 .where({ user_recipient: auth, user_sending: id })
                 .del().returning('*')

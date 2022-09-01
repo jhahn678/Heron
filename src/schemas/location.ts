@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express'
+import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
 import { Resolvers } from '../types/graphql'
 import { AuthError } from '../utils/errors/AuthError'
@@ -93,19 +93,19 @@ export const typeDef =  gql`
 export const resolver: Resolvers = {
     Query: {
         getLocation: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const location = await knex('locations').where({ id, user: auth })
             return location[0];
         }
     },
     Mutation: {
         ///Convert to transaction
-        createLocationPoint: async (_, { location  }, { auth, dataSources }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+        createLocationPoint: async (_, { location  }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { coordinates, waterbody, media, title, description, hexcolor } = location;
 
-            const exists = await dataSources.waterbodies.getWaterbody(waterbody)
+            const exists = await knex('waterbodies').where({ id: waterbody }).first()
             if(!exists) throw new RequestError('INVALID_REFERENCE')
 
             const newLocation: NewLocationObj = { user: auth, waterbody };
@@ -131,12 +131,12 @@ export const resolver: Resolvers = {
             return res[0];
         },
         ///Convert to transaction
-        createLocationPolygon: async (_, { location }, { auth, dataSources }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+        createLocationPolygon: async (_, { location }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { coordinates, waterbody, media, title, description, hexcolor } = location;
 
-            const exists = await dataSources.waterbodies.getWaterbody(waterbody)
+            const exists = await knex('waterbodies').where({ id: waterbody }).first()
             if(!exists) throw new RequestError('INVALID_REFERENCE')
 
             const newLocation: NewLocationObj = { user: auth, waterbody };
@@ -164,7 +164,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         updateLocationDetails: async (_, { id, details }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { title, description } = details;
             const update: any = {};
@@ -179,7 +179,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         updateGeojsonPoint: async (_, { id, point }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { coordinates, hexcolor } = point;
             const update: any = {};
@@ -199,7 +199,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         updateGeojsonPolygon: async (_, { id, polygon }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { coordinates, hexcolor } = polygon;
             const update: any = {};
@@ -219,7 +219,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         addLocationMedia: async (_, { id, media }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const valid = media.filter(x => validateMediaUrl(x.url))
             const uploads = valid.map(x => ({ user: auth, location: id, ...x }))
@@ -242,7 +242,7 @@ export const resolver: Resolvers = {
             return res[0];
         },
         deleteLocation: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
             const res = await knex('locations').where({ id, user: auth }).del().returning('*')
             if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
@@ -262,8 +262,9 @@ export const resolver: Resolvers = {
             const res = await knex('users').where({ id: user })
             return res[0];
         },
-        waterbody: async ({ waterbody }, _, { dataSources}) => {
-            return (await dataSources.waterbodies.getWaterbody(waterbody))
+        waterbody: async ({ waterbody: id }) => {
+            const result = await knex('waterbodies').where({ id }).first()
+            return result;
         },
         media: async ({ id }) => {
             return (await knex('locationMedia').where({ location: id }))

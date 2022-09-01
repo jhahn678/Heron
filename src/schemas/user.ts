@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-express'
+import { AuthenticationError, gql } from 'apollo-server-express'
 import knex from '../configs/knex'
 import { Resolvers } from '../types/graphql'
 import { IPendingContact } from '../types/User'
@@ -67,7 +67,7 @@ export const resolver: Resolvers = {
     },
     Mutation: {
         updateUserDetails: async (_, { details }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             if(typeof details === undefined) throw new RequestError('REQUEST_UNDEFINED')
             const update = removeUndefined(details)
             const res = await knex('users').where({ id: auth }).update(update).returning('*')
@@ -75,12 +75,12 @@ export const resolver: Resolvers = {
             return res[0];
         },
         updateUserAvatar: async (_, { url }, { auth }) => {
-            if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const res = await knex('users').where({ id: auth }).update({ avatar: url }).returning('*')
             return res[0]; 
         },
         deleteContact: async (_, { id }, { auth }) => {
-            if(auth !== id) throw new AuthError('UNAUTHORIZED')
+            if(auth !== id) throw new AuthenticationError('Unauthorized')
             const user_one = id < auth ? id : auth;
             const user_two = id < auth ? auth : id;
             const res = await knex('contacts')
@@ -106,7 +106,7 @@ export const resolver: Resolvers = {
             return contacts;
         },
         locations: async ({ id }, __, { auth }) => {
-            if(auth !== id) throw new AuthError('UNAUTHORIZED')
+            if(auth !== id) throw new AuthenticationError('Unauthorized')
             const locations = await knex('locations').where('user', id)
             return locations;
         },
@@ -115,7 +115,7 @@ export const resolver: Resolvers = {
             return catches;
         },
         pending_contacts: async ({ id }, _, { auth }) => {
-            if(auth !== id) throw new AuthError('UNAUTHORIZED')
+            if(auth !== id) throw new AuthenticationError('Unauthorized')
             const pending: IPendingContact[] = await knex('pendingContacts')
                 .where('user_recipient', id)
                 .unionAll(function(){
@@ -124,7 +124,6 @@ export const resolver: Resolvers = {
             return pending;
         },
         total_contacts: async ({ id }) => {
-           
             const res = await knex('contacts').where('user_one', id).orWhere('user_two', id).count()
             const { count } = res[0];
             if(typeof count === 'string') return parseInt(count);
