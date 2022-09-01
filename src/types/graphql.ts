@@ -418,7 +418,7 @@ export type QueryGetUsersArgs = {
 
 
 export type QueryGetWaterbodiesArgs = {
-  ids?: InputMaybe<Array<InputMaybe<Scalars['Int']>>>;
+  ids?: InputMaybe<Array<Scalars['Int']>>;
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
 };
