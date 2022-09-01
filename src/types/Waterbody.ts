@@ -1,3 +1,5 @@
+import { Geometry } from "geojson"
+
 export interface IWaterbody {
     id: number,
     name: string
@@ -28,4 +30,15 @@ export interface NewWaterbodyMedia {
     user: number,
     key: string,
     url: string
+}
+
+export interface IGeometry {
+    id: number,
+    osm_id: number,
+    name: string,
+    geom: Geometry,
+    ccode: string,
+    country: string
+    admin_one: string,
+    waterbody: number
 }
