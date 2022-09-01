@@ -9,7 +9,6 @@ export type InputMaybe<T> = T | null | undefined;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -30,6 +29,8 @@ export type Scalars = {
   Duration: any;
   EmailAddress: any;
   GUID: any;
+  Geometry: any;
+  GeometryCollection: any;
   HSL: any;
   HSLA: any;
   HexColorCode: any;
@@ -43,6 +44,7 @@ export type Scalars = {
   JSONObject: any;
   JWT: any;
   Latitude: any;
+  LineString: any;
   LocalDate: any;
   LocalEndTime: any;
   LocalTime: any;
@@ -50,6 +52,8 @@ export type Scalars = {
   Long: any;
   Longitude: any;
   MAC: any;
+  MultiLineString: any;
+  MultiPolygon: any;
   NegativeFloat: any;
   NegativeInt: any;
   NonEmptyString: any;
@@ -59,6 +63,8 @@ export type Scalars = {
   NonPositiveInt: any;
   ObjectID: any;
   PhoneNumber: any;
+  Point: any;
+  Polygon: any;
   Port: any;
   PositiveFloat: any;
   PositiveInt: any;
@@ -79,11 +85,118 @@ export type Scalars = {
   Void: any;
 };
 
+export enum AdminOneEnum {
+  Aguascalientes = 'aguascalientes',
+  Alabama = 'alabama',
+  Alaska = 'alaska',
+  Alberta = 'alberta',
+  Arizona = 'arizona',
+  Arkansas = 'arkansas',
+  BajaCalifornia = 'bajaCalifornia',
+  BajaCaliforniaSur = 'bajaCaliforniaSur',
+  BritishColumbia = 'britishColumbia',
+  California = 'california',
+  Campeche = 'campeche',
+  Chiapas = 'chiapas',
+  Chihuahua = 'chihuahua',
+  Coahuila = 'coahuila',
+  Colima = 'colima',
+  Colorado = 'colorado',
+  Connecticut = 'connecticut',
+  Delaware = 'delaware',
+  DistrictOfColumbia = 'districtOfColumbia',
+  DistritoFederal = 'distritoFederal',
+  Durango = 'durango',
+  Florida = 'florida',
+  Georgia = 'georgia',
+  Guanajuato = 'guanajuato',
+  Guerrero = 'guerrero',
+  Hawaii = 'hawaii',
+  Hidalgo = 'hidalgo',
+  Idaho = 'idaho',
+  Illinois = 'illinois',
+  Indiana = 'indiana',
+  Iowa = 'iowa',
+  Jalisco = 'jalisco',
+  Kansas = 'kansas',
+  Kentucky = 'kentucky',
+  KommuneKujalleq = 'kommuneKujalleq',
+  KommuneqarfikSermersooq = 'kommuneqarfikSermersooq',
+  Louisiana = 'louisiana',
+  Maine = 'maine',
+  Manitoba = 'manitoba',
+  Maryland = 'maryland',
+  Massachusetts = 'massachusetts',
+  Mexico = 'mexico',
+  Michigan = 'michigan',
+  Michoacan = 'michoacan',
+  Minnesota = 'minnesota',
+  Mississippi = 'mississippi',
+  Missouri = 'missouri',
+  Montana = 'montana',
+  Morelos = 'morelos',
+  Nationalparken = 'nationalparken',
+  Nayarit = 'nayarit',
+  Nebraska = 'nebraska',
+  Nevada = 'nevada',
+  NewBrunswick = 'newBrunswick',
+  NewHampshire = 'newHampshire',
+  NewJersey = 'newJersey',
+  NewMexico = 'newMexico',
+  NewYork = 'newYork',
+  NewfoundlandAndLabrador = 'newfoundlandAndLabrador',
+  NorthCarolina = 'northCarolina',
+  NorthDakota = 'northDakota',
+  NorthwestTerritories = 'northwestTerritories',
+  NovaScotia = 'novaScotia',
+  NuevoLeon = 'nuevoLeon',
+  Nunavat = 'nunavat',
+  Nunavut = 'nunavut',
+  Oaxaca = 'oaxaca',
+  Ohio = 'ohio',
+  Oklahoma = 'oklahoma',
+  Ontario = 'ontario',
+  Oregon = 'oregon',
+  Pennsylvania = 'pennsylvania',
+  Pituffik = 'pituffik',
+  PrinceEdwardIsland = 'princeEdwardIsland',
+  Puebla = 'puebla',
+  QaasuitsupKommunia = 'qaasuitsupKommunia',
+  QeqqataKommunia = 'qeqqataKommunia',
+  Quebec = 'quebec',
+  Queretaro = 'queretaro',
+  QuintanaRoo = 'quintanaRoo',
+  RhodeIsland = 'rhodeIsland',
+  SanLuisPotosi = 'sanLuisPotosi',
+  Saskatchewan = 'saskatchewan',
+  Sinaloa = 'sinaloa',
+  Sonora = 'sonora',
+  SouthCarolina = 'southCarolina',
+  SouthDakota = 'southDakota',
+  Tabasco = 'tabasco',
+  Tamaulipas = 'tamaulipas',
+  Tennesse = 'tennesse',
+  Tennessee = 'tennessee',
+  Texas = 'texas',
+  Tlaxcala = 'tlaxcala',
+  Utah = 'utah',
+  Veracruz = 'veracruz',
+  Vermont = 'vermont',
+  Virginia = 'virginia',
+  Washington = 'washington',
+  WestVirginia = 'westVirginia',
+  Wisconsin = 'wisconsin',
+  Wyoming = 'wyoming',
+  Yucatan = 'yucatan',
+  Yukon = 'yukon',
+  Zacatecas = 'zacatecas'
+}
+
 export type Catch = {
   __typename?: 'Catch';
   created_at?: Maybe<Scalars['DateTime']>;
   description?: Maybe<Scalars['String']>;
-  geom?: Maybe<Point>;
+  geom?: Maybe<Scalars['Point']>;
   id: Scalars['Int'];
   length?: Maybe<Scalars['Float']>;
   length_unit?: Maybe<LengthUnit>;
@@ -116,13 +229,19 @@ export type CatchMedia = Media & {
   user: Scalars['Int'];
 };
 
-export type Geojson = {
-  __typename?: 'Geojson';
-  geometry?: Maybe<Geometry>;
-  type?: Maybe<Scalars['String']>;
-};
-
-export type Geometry = Point | Polygon;
+export enum ClassificationEnum {
+  Bay = 'bay',
+  Bayou = 'bayou',
+  Beach = 'beach',
+  Creek = 'creek',
+  Lagoon = 'lagoon',
+  Lake = 'lake',
+  Pond = 'pond',
+  Reservoir = 'reservoir',
+  River = 'river',
+  Strait = 'strait',
+  Stream = 'stream'
+}
 
 export type LengthInput = {
   unit: LengthUnit;
@@ -137,7 +256,7 @@ export enum LengthUnit {
 export type Location = {
   __typename?: 'Location';
   description?: Maybe<Scalars['String']>;
-  geojson?: Maybe<Geojson>;
+  geom?: Maybe<Scalars['Geometry']>;
   id: Scalars['Int'];
   media?: Maybe<Array<Maybe<LocationMedia>>>;
   title?: Maybe<Scalars['String']>;
@@ -368,18 +487,6 @@ export type PendingContactInput = {
   user: Scalars['ID'];
 };
 
-export type Point = {
-  __typename?: 'Point';
-  coordinates: Array<Maybe<Scalars['Float']>>;
-  type: Scalars['String'];
-};
-
-export type Polygon = {
-  __typename?: 'Polygon';
-  coordinates: Array<Maybe<Array<Maybe<Scalars['Float']>>>>;
-  type: Scalars['String'];
-};
-
 export type Query = {
   __typename?: 'Query';
   getCatch?: Maybe<Catch>;
@@ -418,15 +525,30 @@ export type QueryGetUsersArgs = {
 
 
 export type QueryGetWaterbodiesArgs = {
-  ids?: InputMaybe<Array<Scalars['Int']>>;
+  adminOne?: InputMaybe<Array<AdminOneEnum>>;
+  classifications?: InputMaybe<Array<ClassificationEnum>>;
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
+  queryLocation?: InputMaybe<QueryLocation>;
+  sort?: InputMaybe<Sort>;
+  value?: InputMaybe<Scalars['String']>;
 };
 
 
 export type QueryGetWaterbodyArgs = {
   id: Scalars['Int'];
 };
+
+export type QueryLocation = {
+  latitude: Scalars['Float'];
+  longitude: Scalars['Float'];
+  withinMeters: Scalars['Int'];
+};
+
+export enum Sort {
+  Distance = 'distance',
+  Rank = 'rank'
+}
 
 export enum Status {
   From = 'FROM',
@@ -470,10 +592,13 @@ export type Waterbody = {
   ccode?: Maybe<Scalars['String']>;
   classification?: Maybe<Scalars['String']>;
   country?: Maybe<Scalars['String']>;
+  distance?: Maybe<Scalars['Float']>;
+  geometries?: Maybe<Scalars['Geometry']>;
   id?: Maybe<Scalars['Int']>;
   locations?: Maybe<Array<Maybe<Location>>>;
   media?: Maybe<Array<Maybe<WaterbodyMedia>>>;
   name?: Maybe<Scalars['String']>;
+  rank?: Maybe<Scalars['Float']>;
   subregion?: Maybe<Scalars['String']>;
 };
 
@@ -579,12 +704,14 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   AccountNumber: ResolverTypeWrapper<Scalars['AccountNumber']>;
+  AdminOneEnum: AdminOneEnum;
   BigInt: ResolverTypeWrapper<Scalars['BigInt']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
   Byte: ResolverTypeWrapper<Scalars['Byte']>;
   Catch: ResolverTypeWrapper<ICatch>;
   CatchDetails: CatchDetails;
   CatchMedia: ResolverTypeWrapper<CatchMedia>;
+  ClassificationEnum: ClassificationEnum;
   CountryCode: ResolverTypeWrapper<Scalars['CountryCode']>;
   Cuid: ResolverTypeWrapper<Scalars['Cuid']>;
   Currency: ResolverTypeWrapper<Scalars['Currency']>;
@@ -595,8 +722,8 @@ export type ResolversTypes = ResolversObject<{
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']>;
   Float: ResolverTypeWrapper<Scalars['Float']>;
   GUID: ResolverTypeWrapper<Scalars['GUID']>;
-  Geojson: ResolverTypeWrapper<Omit<Geojson, 'geometry'> & { geometry?: Maybe<ResolversTypes['Geometry']> }>;
-  Geometry: ResolversTypes['Point'] | ResolversTypes['Polygon'];
+  Geometry: ResolverTypeWrapper<Scalars['Geometry']>;
+  GeometryCollection: ResolverTypeWrapper<Scalars['GeometryCollection']>;
   HSL: ResolverTypeWrapper<Scalars['HSL']>;
   HSLA: ResolverTypeWrapper<Scalars['HSLA']>;
   HexColorCode: ResolverTypeWrapper<Scalars['HexColorCode']>;
@@ -614,6 +741,7 @@ export type ResolversTypes = ResolversObject<{
   Latitude: ResolverTypeWrapper<Scalars['Latitude']>;
   LengthInput: LengthInput;
   LengthUnit: LengthUnit;
+  LineString: ResolverTypeWrapper<Scalars['LineString']>;
   LocalDate: ResolverTypeWrapper<Scalars['LocalDate']>;
   LocalEndTime: ResolverTypeWrapper<Scalars['LocalEndTime']>;
   LocalTime: ResolverTypeWrapper<Scalars['LocalTime']>;
@@ -626,6 +754,8 @@ export type ResolversTypes = ResolversObject<{
   MAC: ResolverTypeWrapper<Scalars['MAC']>;
   Media: ResolversTypes['CatchMedia'] | ResolversTypes['LocationMedia'] | ResolversTypes['WaterbodyMedia'];
   MediaInput: MediaInput;
+  MultiLineString: ResolverTypeWrapper<Scalars['MultiLineString']>;
+  MultiPolygon: ResolverTypeWrapper<Scalars['MultiPolygon']>;
   Mutation: ResolverTypeWrapper<{}>;
   NegativeFloat: ResolverTypeWrapper<Scalars['NegativeFloat']>;
   NegativeInt: ResolverTypeWrapper<Scalars['NegativeInt']>;
@@ -641,17 +771,19 @@ export type ResolversTypes = ResolversObject<{
   PendingContact: ResolverTypeWrapper<IPendingContact>;
   PendingContactInput: PendingContactInput;
   PhoneNumber: ResolverTypeWrapper<Scalars['PhoneNumber']>;
-  Point: ResolverTypeWrapper<Point>;
-  Polygon: ResolverTypeWrapper<Polygon>;
+  Point: ResolverTypeWrapper<Scalars['Point']>;
+  Polygon: ResolverTypeWrapper<Scalars['Polygon']>;
   Port: ResolverTypeWrapper<Scalars['Port']>;
   PositiveFloat: ResolverTypeWrapper<Scalars['PositiveFloat']>;
   PositiveInt: ResolverTypeWrapper<Scalars['PositiveInt']>;
   PostalCode: ResolverTypeWrapper<Scalars['PostalCode']>;
   Query: ResolverTypeWrapper<{}>;
+  QueryLocation: QueryLocation;
   RGB: ResolverTypeWrapper<Scalars['RGB']>;
   RGBA: ResolverTypeWrapper<Scalars['RGBA']>;
   RoutingNumber: ResolverTypeWrapper<Scalars['RoutingNumber']>;
   SafeInt: ResolverTypeWrapper<Scalars['SafeInt']>;
+  Sort: Sort;
   Status: Status;
   String: ResolverTypeWrapper<Scalars['String']>;
   Time: ResolverTypeWrapper<Scalars['Time']>;
@@ -693,8 +825,8 @@ export type ResolversParentTypes = ResolversObject<{
   EmailAddress: Scalars['EmailAddress'];
   Float: Scalars['Float'];
   GUID: Scalars['GUID'];
-  Geojson: Omit<Geojson, 'geometry'> & { geometry?: Maybe<ResolversParentTypes['Geometry']> };
-  Geometry: ResolversParentTypes['Point'] | ResolversParentTypes['Polygon'];
+  Geometry: Scalars['Geometry'];
+  GeometryCollection: Scalars['GeometryCollection'];
   HSL: Scalars['HSL'];
   HSLA: Scalars['HSLA'];
   HexColorCode: Scalars['HexColorCode'];
@@ -711,6 +843,7 @@ export type ResolversParentTypes = ResolversObject<{
   JWT: Scalars['JWT'];
   Latitude: Scalars['Latitude'];
   LengthInput: LengthInput;
+  LineString: Scalars['LineString'];
   LocalDate: Scalars['LocalDate'];
   LocalEndTime: Scalars['LocalEndTime'];
   LocalTime: Scalars['LocalTime'];
@@ -723,6 +856,8 @@ export type ResolversParentTypes = ResolversObject<{
   MAC: Scalars['MAC'];
   Media: ResolversParentTypes['CatchMedia'] | ResolversParentTypes['LocationMedia'] | ResolversParentTypes['WaterbodyMedia'];
   MediaInput: MediaInput;
+  MultiLineString: Scalars['MultiLineString'];
+  MultiPolygon: Scalars['MultiPolygon'];
   Mutation: {};
   NegativeFloat: Scalars['NegativeFloat'];
   NegativeInt: Scalars['NegativeInt'];
@@ -738,13 +873,14 @@ export type ResolversParentTypes = ResolversObject<{
   PendingContact: IPendingContact;
   PendingContactInput: PendingContactInput;
   PhoneNumber: Scalars['PhoneNumber'];
-  Point: Point;
-  Polygon: Polygon;
+  Point: Scalars['Point'];
+  Polygon: Scalars['Polygon'];
   Port: Scalars['Port'];
   PositiveFloat: Scalars['PositiveFloat'];
   PositiveInt: Scalars['PositiveInt'];
   PostalCode: Scalars['PostalCode'];
   Query: {};
+  QueryLocation: QueryLocation;
   RGB: Scalars['RGB'];
   RGBA: Scalars['RGBA'];
   RoutingNumber: Scalars['RoutingNumber'];
@@ -864,15 +1000,13 @@ export interface GuidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
   name: 'GUID';
 }
 
-export type GeojsonResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Geojson'] = ResolversParentTypes['Geojson']> = ResolversObject<{
-  geometry?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
-  type?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
+export interface GeometryScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Geometry'], any> {
+  name: 'Geometry';
+}
 
-export type GeometryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Geometry'] = ResolversParentTypes['Geometry']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Point' | 'Polygon', ParentType, ContextType>;
-}>;
+export interface GeometryCollectionScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['GeometryCollection'], any> {
+  name: 'GeometryCollection';
+}
 
 export interface HslScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['HSL'], any> {
   name: 'HSL';
@@ -926,6 +1060,10 @@ export interface LatitudeScalarConfig extends GraphQLScalarTypeConfig<ResolversT
   name: 'Latitude';
 }
 
+export interface LineStringScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['LineString'], any> {
+  name: 'LineString';
+}
+
 export interface LocalDateScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['LocalDate'], any> {
   name: 'LocalDate';
 }
@@ -944,7 +1082,7 @@ export interface LocaleScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
 
 export type LocationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Location'] = ResolversParentTypes['Location']> = ResolversObject<{
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  geojson?: Resolver<Maybe<ResolversTypes['Geojson']>, ParentType, ContextType>;
+  geom?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -981,6 +1119,14 @@ export type MediaResolvers<ContextType = Context, ParentType extends ResolversPa
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
 }>;
+
+export interface MultiLineStringScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['MultiLineString'], any> {
+  name: 'MultiLineString';
+}
+
+export interface MultiPolygonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['MultiPolygon'], any> {
+  name: 'MultiPolygon';
+}
 
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   acceptPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationAcceptPendingContactArgs, 'id'>>;
@@ -1052,17 +1198,13 @@ export interface PhoneNumberScalarConfig extends GraphQLScalarTypeConfig<Resolve
   name: 'PhoneNumber';
 }
 
-export type PointResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Point'] = ResolversParentTypes['Point']> = ResolversObject<{
-  coordinates?: Resolver<Array<Maybe<ResolversTypes['Float']>>, ParentType, ContextType>;
-  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
+export interface PointScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Point'], any> {
+  name: 'Point';
+}
 
-export type PolygonResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Polygon'] = ResolversParentTypes['Polygon']> = ResolversObject<{
-  coordinates?: Resolver<Array<Maybe<Array<Maybe<ResolversTypes['Float']>>>>, ParentType, ContextType>;
-  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
+export interface PolygonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Polygon'], any> {
+  name: 'Polygon';
+}
 
 export interface PortScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Port'], any> {
   name: 'Port';
@@ -1175,10 +1317,13 @@ export type WaterbodyResolvers<ContextType = Context, ParentType extends Resolve
   ccode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   classification?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   country?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  distance?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  geometries?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  rank?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   subregion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1207,8 +1352,8 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   Duration?: GraphQLScalarType;
   EmailAddress?: GraphQLScalarType;
   GUID?: GraphQLScalarType;
-  Geojson?: GeojsonResolvers<ContextType>;
-  Geometry?: GeometryResolvers<ContextType>;
+  Geometry?: GraphQLScalarType;
+  GeometryCollection?: GraphQLScalarType;
   HSL?: GraphQLScalarType;
   HSLA?: GraphQLScalarType;
   HexColorCode?: GraphQLScalarType;
@@ -1222,6 +1367,7 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   JSONObject?: GraphQLScalarType;
   JWT?: GraphQLScalarType;
   Latitude?: GraphQLScalarType;
+  LineString?: GraphQLScalarType;
   LocalDate?: GraphQLScalarType;
   LocalEndTime?: GraphQLScalarType;
   LocalTime?: GraphQLScalarType;
@@ -1232,6 +1378,8 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   Longitude?: GraphQLScalarType;
   MAC?: GraphQLScalarType;
   Media?: MediaResolvers<ContextType>;
+  MultiLineString?: GraphQLScalarType;
+  MultiPolygon?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
   NegativeFloat?: GraphQLScalarType;
   NegativeInt?: GraphQLScalarType;
@@ -1243,8 +1391,8 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   ObjectID?: GraphQLScalarType;
   PendingContact?: PendingContactResolvers<ContextType>;
   PhoneNumber?: GraphQLScalarType;
-  Point?: PointResolvers<ContextType>;
-  Polygon?: PolygonResolvers<ContextType>;
+  Point?: GraphQLScalarType;
+  Polygon?: GraphQLScalarType;
   Port?: GraphQLScalarType;
   PositiveFloat?: GraphQLScalarType;
   PositiveInt?: GraphQLScalarType;
