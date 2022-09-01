@@ -4,13 +4,14 @@ import KnexPostgis from "knex-postgis";
 import { IUser, UserAvatar, IContact, IPendingContact } from "../types/User";
 import { ICatch, CatchMedia } from "../types/Catch";
 import { ILocation, LocationMedia } from "../types/Location";
-import { ISavedWaterbody, WaterbodyMedia } from "../types/Waterbody";
+import { ISavedWaterbody, IWaterbody, WaterbodyMedia } from "../types/Waterbody";
+import { IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
-const { PG_HERON_CONNECTION } = process.env;
+const { PG_DB_CONNECTION } = process.env;
 
 const knex = Knex({
     client: 'pg',
-    connection: PG_HERON_CONNECTION,
+    connection: PG_DB_CONNECTION,
     pool: { min: 0, max: 25 },
     wrapIdentifier: (value, origImpl) => origImpl(camelToSnakeCase(value)),
 })
@@ -30,6 +31,8 @@ declare module 'knex/types/tables' {
         locations: ILocation,
         locationMedia: LocationMedia,
         waterbodyMedia: WaterbodyMedia,
-        savedWaterbodies: ISavedWaterbody
+        savedWaterbodies: ISavedWaterbody,
+        waterbodies: IWaterbody,
+        refreshTokens: IRefreshToken
     }
 }

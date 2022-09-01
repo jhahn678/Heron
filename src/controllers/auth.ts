@@ -1,44 +1,57 @@
 import { asyncWrapper } from "../utils/errors/asyncWrapper"
+import * as crypto from 'crypto'
 import knex from "../configs/knex"
 import { hashPassword, comparePasswords } from '../utils/auth/passwords'
 import { AuthError } from "../utils/errors/AuthError"
 import Joi from "joi"
 import { Request } from 'express'
-import { createAuthToken } from "../utils/auth/token"
+import { 
+    refreshExistingTokenPair, 
+    createTokenPairOnAuth, 
+    verifyRefreshToken 
+} from "../utils/auth/token"
+import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
+import redis from "../configs/redis"
 
 
 interface LoginRequest {
-    identifier: string,
+    identifier: string | number,
     password: string
 }
 
 
 export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res, next) => {
     const { identifier, password } = req.body;
-    if(identifier.includes('@' && '.')){
+    if(typeof identifier === 'string' && identifier.includes('@' && '.')){
         const user = await knex('users').where('email', identifier).first()
         if(!user || !(await comparePasswords(password, user.password))){
             throw new AuthError('AUTHENTICATION_FAILED')
         }
-        const token = createAuthToken({ id: user.id })
+        const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
         res.status(200).json({ 
-            token, 
+            accessToken,
+            refreshToken, 
+            id: user.id,
+            firstname: user.firstname,
+            username: user.username, 
+            avatar: user.avatar, 
+        })
+    }else if(typeof identifier === 'string'){
+        const user = await knex('users').where('username', identifier).first()
+        if(!user || !(await comparePasswords(password, user.password))){
+            throw new AuthError('AUTHENTICATION_FAILED')
+        }
+        const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
+        res.status(200).json({ 
+            accessToken,
+            refreshToken, 
+            id: user.id,
             firstname: user.firstname,
             username: user.username, 
             avatar: user.avatar, 
         })
     }else{
-        const user = await knex('users').where('username', identifier).first()
-        if(!user || !(await comparePasswords(password, user.password))){
-            throw new AuthError('AUTHENTICATION_FAILED')
-        }
-        const token = createAuthToken({ id: user.id })
-        res.status(200).json({ 
-            token, 
-            firstname: user.firstname,
-            username: user.username, 
-            avatar: user.avatar, 
-        })
+        throw new AuthError('AUTHENTICATION_FAILED')
     }
 })
 
@@ -69,31 +82,39 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
 
     const hashbrowns = await hashPassword(password)
 
-    const user = await knex('users').insert({
-        firstname, lastname, username, email, password: hashbrowns
-    }).returning('*')
+    const result = await knex('users')
+        .insert({
+            firstname, 
+            lastname, 
+            username, 
+            email, 
+            password: hashbrowns
+        })
+        .returning('*')
 
-    const token = createAuthToken({ id: user[0].id })
+    const user = result[0];
+    const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
 
-    res.status(201).json({ user, token })
+    res.status(201).json({ 
+        accessToken,
+        refreshToken,
+        id: user.id,
+        firstname: user.firstname,
+        username: user.username, 
+        avatar: user.avatar, 
+    })
 
 })
 
-
-export const forgotPassword = asyncWrapper(async (req, res, next) => {
-
-})
-
-export const resetPassword = asyncWrapper(async (req, res, next) => {
-
-})
 
 interface DeleteUser {
-    id: number
+    token: string
 }
 
 export const deleteAccount = asyncWrapper(async (req: Request<{},{},DeleteUser>, res, next) => {
-    const { id } = req.body;
+    const { token } = req.body
+    if(!token) throw new AuthError('AUTHENTICATION_REQUIRED')
+    const { id } = await verifyRefreshToken(token)
     await knex('users').where({ id }).del()
     res.status(204).json({ message: `User with id ${id} deleted`})
 })
@@ -105,7 +126,7 @@ interface CheckEmailQuery {
 export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},CheckEmailQuery>, res, next) => {
     const { email } = req.query;
     const user = await knex('users').where('email', email).first()
-    res.status(200).json({ email, available: Boolean(user) })
+    res.status(200).json({ email, available: Boolean(!user) })
 })
 
 
@@ -116,5 +137,49 @@ interface CheckUsernameQuery {
 export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},CheckUsernameQuery>, res, next) => {
     const { username } = req.query;
     const user = await knex('users').where('username', username).first()
-    res.status(200).json({ username, available: Boolean(user) })
+    res.status(200).json({ username, available: Boolean(!user) })
 });
+
+interface NewAccessTokenReq {
+    token: string
+}
+
+export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAccessTokenReq>, res, next) => {
+    const { token } = req.body;
+    const { accessToken, refreshToken } = await refreshExistingTokenPair(token)
+    res.status(200).json({ accessToken, refreshToken })
+})
+
+
+interface ForgotPasswordReq {
+    email: string
+}
+
+export const forgotPassword = asyncWrapper(async (req: Request<{},{},ForgotPasswordReq>, res, next) => {
+    const { email } = req.body;
+    if(!email) throw new AuthError('EMAIL_REQUIRED')
+    const user = await knex('users').where({ email }).first()
+    if(user) {
+        const token = crypto.randomBytes(32).toString('base64url')
+        await redis.set(token, user.id, { EX: (60 * 15) })
+        await sendPasswordResetEmail({ emailAddress: email, resetPasswordToken: token })
+    }
+    res.status(200).json({ message: 'Request received' })
+})
+
+interface ResetPasswordReq {
+    token: string
+    password: string
+}
+
+export const resetPassword = asyncWrapper(async (req: Request<{},{},ResetPasswordReq>, res, next) => {
+    const { token, password } = req.body;
+    const user = await redis.get(token)
+    if(!user) throw new AuthError('TOKEN_INVALID')
+    await redis.del(token)
+    const hash = await hashPassword(password)
+    const updated = await knex('users')
+        .where('id', user)
+        .update({ password: hash })
+    res.status(200).json({ message: 'Password successfully changed' })
+})

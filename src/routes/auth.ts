@@ -9,10 +9,10 @@ router.post('/register', controllers.registerUser)
 router.delete('/delete-account', authorizeRequest, controllers.deleteAccount)
 router.get('/email', controllers.checkEmailAvailability)
 router.get('/username', controllers.checkUsernameAvailability)
-
-//TO DO
+router.post('/token', controllers.issueNewAccessToken)
 router.post('/forgot-password', controllers.forgotPassword)
-router.post('/reset-password', authorizeRequest, controllers.resetPassword)
+router.post('/reset-password', controllers.resetPassword)
 
 
 export default router;
+

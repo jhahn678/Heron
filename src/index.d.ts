@@ -4,4 +4,9 @@ declare module "express-serve-static-core" {
     }
 }
 
-export {}
+declare module 'jsonwebtoken' {
+    interface JwtPayload {
+        id: number,
+        jti?: string
+    }
+}

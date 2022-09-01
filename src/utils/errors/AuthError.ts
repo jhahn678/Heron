@@ -5,6 +5,7 @@ type ErrorType =
 | 'USERNAME_REQUIRED' | 'PASSWORD_REQUIRED'
 | 'AUTHENTICATION_REQUIRED' | 'AUTHENTICATION_FAILED'
 | 'UNAUTHORIZED' | 'TOKEN_INVALID' | 'TOKEN_EXPIRED'
+| 'PASSWORD_RESET_EMAIL_FAILED'
 
 export class AuthError extends Error{
     status: number = 400
@@ -51,6 +52,9 @@ export class AuthError extends Error{
                 break;
             case 'TOKEN_EXPIRED':
                 this.message = 'The provided authentication token is expired';
+                break;
+            case 'PASSWORD_RESET_EMAIL_FAILED':
+                this.message = 'Could not send password reset email';
                 break;
             default:
                 break;

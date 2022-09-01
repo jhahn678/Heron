@@ -3,7 +3,7 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors'
 import routes from './routes'
-import { Waterbodies, knexConfig } from './configs/waterbodies';
+import redis from './configs/redis';
 import { ApolloServer } from 'apollo-server-express';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import {
@@ -11,12 +11,14 @@ import {
     ApolloServerPluginLandingPageLocalDefault,
 } from 'apollo-server-core';
 import { typeDefs, resolvers } from './schemas'
-import { verifyAuthHeader } from './utils/auth/token';
+import { verifyAccessToken } from './utils/auth/token';
 import { constraintDirective } from 'graphql-constraint-directive';
 
 const PORT = process.env.PORT || 4000
 
 async function startServer(){
+
+    await redis.connect()
     const app = express()
     const httpServer = http.createServer(app)
 
@@ -26,13 +28,13 @@ async function startServer(){
         schema,
         csrfPrevention: true,
         cache: 'bounded',
-        dataSources: () => ({
-            waterbodies: new Waterbodies(knexConfig)
-        }),
         context: ({ req }) => {
             const { authorization } = req.headers;
-            const id = verifyAuthHeader(authorization)
-            return { auth: id }
+            if(authorization && authorization.startsWith('Bearer')){
+                const token = authorization.split(' ')[1]
+                const decoded = verifyAccessToken(token)
+                return { auth: decoded.id }
+            }
         },
         plugins: [
             ApolloServerPluginDrainHttpServer({ httpServer }),

@@ -2,6 +2,6 @@ import { ErrorRequestHandler } from 'express'
 
 
 export const errorRequestHandler: ErrorRequestHandler = (err, req, res, next) => {
-    console.log(err)
-    res.status(err.status).json({ error: err.message })
+    console.error(err)
+    res.status(err.status || 500).json({ error: err.message })
 }

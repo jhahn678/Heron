@@ -2,7 +2,7 @@ import { Request } from 'express'
 import { asyncWrapper } from "../utils/errors/asyncWrapper";
 import { AuthError } from '../utils/errors/AuthError';
 import { UploadError } from '../utils/errors/UploadError';
-import { verifyAuthHeader } from '../utils/auth/token';
+import { verifyAccessToken } from '../utils/auth/token';
 import { validateUploadFileType } from '../utils/validations/validateUploadFileType';
 import knex from '../configs/knex';
 import { v4 as uuid } from 'uuid'
@@ -28,10 +28,12 @@ export const getSignedUploadUrl = asyncWrapper(async (req: Request<{},{},{},Sign
     if(!filetype) throw new UploadError('FILE_TYPE_REQUIRED')
     if(!validateUploadFileType(filetype)) throw new UploadError('INVALID_FILE_TYPE')
 
-    const user = verifyAuthHeader(req.headers.authorization)
-    if(!user) throw new AuthError('AUTHENTICATION_REQUIRED')
+    const { authorization } = req.headers;
+    if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')
+    const payload = verifyAccessToken(authorization.split(' ')[1], { error: 'EXPRESS' }) 
+    if(!payload) throw new AuthError('AUTHENTICATION_FAILED')
 
-    const fileKey = `${user}-${uuid()}`;
+    const fileKey = `${payload.id}-${uuid()}`;
     const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET_NAME,
         Key: fileKey,
