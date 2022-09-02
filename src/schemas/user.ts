@@ -2,7 +2,6 @@ import { AuthenticationError, gql } from 'apollo-server-express'
 import knex from '../configs/knex'
 import { Resolvers } from '../types/graphql'
 import { IPendingContact } from '../types/User'
-import { AuthError } from '../utils/errors/AuthError'
 import { RequestError } from '../utils/errors/RequestError'
 import { removeUndefined } from '../utils/validations/removeUndefined'
 
@@ -29,6 +28,7 @@ export const typeDef =  gql `
     }
 
     type Query {
+        getMe: User
         getUser(id: Int!): User
         getUsers(ids: [Int]): [User]
     }
@@ -53,6 +53,11 @@ export const typeDef =  gql `
 
 export const resolver: Resolvers = {
     Query: {
+        getMe: async (_, __, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Missing')
+            const user = await knex('users').where('id', auth).first()
+            return user;
+        },
         getUser: async (_, { id } ) => {
             const user = await knex('users').where('id', id)
             return user[0]
@@ -91,7 +96,7 @@ export const resolver: Resolvers = {
         },
     },
     User: {
-        // fullname: ({ firstname, lastname }) => `${firstname} ${lastname}`,
+        fullname: ({ firstname, lastname }) => `${firstname} ${lastname}`,
         contacts: async ({ id }) => {
             const contacts = await knex('contacts')
                 .select('users.*')

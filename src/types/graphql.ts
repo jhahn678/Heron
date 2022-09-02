@@ -492,6 +492,7 @@ export type Query = {
   getCatch?: Maybe<Catch>;
   getCatches?: Maybe<Array<Maybe<Catch>>>;
   getLocation?: Maybe<Location>;
+  getMe?: Maybe<User>;
   getUser?: Maybe<User>;
   getUsers?: Maybe<Array<Maybe<User>>>;
   getWaterbodies?: Maybe<Array<Maybe<Waterbody>>>;
@@ -600,6 +601,27 @@ export type Waterbody = {
   name?: Maybe<Scalars['String']>;
   rank?: Maybe<Scalars['Float']>;
   subregion?: Maybe<Scalars['String']>;
+  total_catches?: Maybe<Scalars['Int']>;
+  total_locations?: Maybe<Scalars['Int']>;
+  total_media?: Maybe<Scalars['Int']>;
+};
+
+
+export type WaterbodyCatchesArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type WaterbodyLocationsArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type WaterbodyMediaArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
 };
 
 export type WaterbodyMedia = Media & {
@@ -1226,6 +1248,7 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   getCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<QueryGetCatchArgs, 'id'>>;
   getCatches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryGetCatchesArgs>>;
   getLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<QueryGetLocationArgs, 'id'>>;
+  getMe?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   getUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryGetUserArgs, 'id'>>;
   getUsers?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<QueryGetUsersArgs>>;
   getWaterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, Partial<QueryGetWaterbodiesArgs>>;
@@ -1313,18 +1336,21 @@ export interface VoidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 export type WaterbodyResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Waterbody'] = ResolversParentTypes['Waterbody']> = ResolversObject<{
   admin_one?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
   admin_two?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
-  catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType>;
+  catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<WaterbodyCatchesArgs>>;
   ccode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   classification?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   country?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   distance?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geometries?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType>;
-  media?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType>;
+  locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType, Partial<WaterbodyLocationsArgs>>;
+  media?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType, Partial<WaterbodyMediaArgs>>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rank?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   subregion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  total_catches?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  total_locations?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  total_media?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
