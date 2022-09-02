@@ -17,9 +17,12 @@ export const typeDef =  gql`
         ccode: String
         subregion: String
         geometries: Geometry
-        catches: [Catch]
-        locations: [Location]
-        media: [WaterbodyMedia]
+        catches(offset: Int, limit: Int): [Catch]
+        total_catches: Int
+        locations(offset: Int, limit: Int): [Location]
+        total_locations: Int
+        media(offset: Int, limit: Int): [WaterbodyMedia]
+        total_media: Int
         distance: Float
         rank: Float
     }
@@ -125,17 +128,44 @@ export const resolver: Resolvers = {
                 .first()
             if(result) return result.geometries;
         },
-        catches: async ({ id }) => {
-            const catches = await knex('catches').where({ waterbody: id })
+        catches: async ({ id }, { offset, limit }) => {
+            const catches = await knex('catches')
+                .where({ waterbody: id })
+                .offset(offset || 0)
+                .limit(limit || 4)
             return catches;
         },
-        locations: async ({ id }) => {
-            const locations = await knex('locations').where({ waterbody: id })
+        total_catches: async ({ id }) => {
+            const result = await knex('catches').where({ waterbody: id }).count('id')
+            const { count } = result[0]
+            if(typeof count !== 'number') return parseInt(count)
+            return count
+        },
+        locations: async ({ id }, { offset, limit }) => {
+            const locations = await knex('locations')
+                .where({ waterbody: id })
+                .offset(offset || 0)
+                .limit(limit || 4)
             return locations;
         },
-        media: async ({ id }) => {
-            const media = await knex('waterbodyMedia').where({ waterbody: id })
+        total_locations: async ({ id }) => {
+            const result = await knex('locations').where({ waterbody: id }).count('id')
+            const { count } = result[0]
+            if(typeof count !== 'number') return parseInt(count)
+            return count
+        },
+        media: async ({ id }, { offset, limit }) => {
+            const media = await knex('waterbodyMedia')
+                .where({ waterbody: id })
+                .offset(offset || 0)
+                .limit(limit || 1)
             return media;
+        },
+        total_media: async ({ id }) => {
+            const result = await knex('waterbodyMedia').where({ waterbody: id }).count()
+            const { count } = result[0]
+            if(typeof count !== 'number') return parseInt(count)
+            return count
         }
-    }
+     }
 }
