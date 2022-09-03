@@ -31,6 +31,7 @@ export const typeDef =  gql `
         me: User
         user(id: Int!): User
         users(ids: [Int]): [User]
+        activityFeed(limit: Int, offset: Int): [Catch]
     }
 
     type Mutation {
@@ -68,6 +69,27 @@ export const resolver: Resolvers = {
                 return users;
             }
             return (await knex('users'))
+        },
+        // Needs to be tested
+        // Aggregation and ordering by created_at
+        activityFeed: async(_, { limit, offset }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
+            const results = await knex('catches')
+                .whereIn('user', function(){
+                    this.from('contacts')  
+                        .select('user_one as user')
+                        .join('users', 'contacts.user_one', '=', 'users.id')
+                        .unionAll(function() {
+                            this.from('contacts')
+                                .select('user_two as user')
+                                .join('users', 'contacts.user_two', '=', 'users.id')
+                        })
+                })
+                .orderBy('created_at', 'desc')
+                .offset(offset || 0)
+                .limit(limit || 10)
+            
+            return results;
         }
     },
     Mutation: {

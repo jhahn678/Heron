@@ -489,6 +489,7 @@ export type PendingContactInput = {
 
 export type Query = {
   __typename?: 'Query';
+  activityFeed?: Maybe<Array<Maybe<Catch>>>;
   catch?: Maybe<Catch>;
   catches?: Maybe<Array<Maybe<Catch>>>;
   location?: Maybe<Location>;
@@ -497,6 +498,12 @@ export type Query = {
   users?: Maybe<Array<Maybe<User>>>;
   waterbodies?: Maybe<Array<Maybe<Waterbody>>>;
   waterbody?: Maybe<Waterbody>;
+};
+
+
+export type QueryActivityFeedArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -1245,6 +1252,7 @@ export interface PostalCodeScalarConfig extends GraphQLScalarTypeConfig<Resolver
 }
 
 export type QueryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
+  activityFeed?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryActivityFeedArgs>>;
   catch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<QueryCatchArgs, 'id'>>;
   catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryCatchesArgs>>;
   location?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<QueryLocationArgs, 'id'>>;
