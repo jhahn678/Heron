@@ -25,7 +25,7 @@ export const typeDef =  gql`
     }
 
     type Query {
-        getLocation(id: Int!): Location
+        location(id: Int!): Location
     }
 
     type Mutation {
@@ -76,7 +76,7 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
-        getLocation: async (_, { id }, { auth }) => {
+        location: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
             const location = await knex('locations').where({ id, user: auth })
             return location[0];

@@ -50,8 +50,8 @@ export const typeDef =  gql`
     }
 
     type Query {
-        getCatch(id: Int!): Catch
-        getCatches(ids: [Int]): [Catch]
+        catch(id: Int!): Catch
+        catches(ids: [Int]): [Catch]
     }
 
     type Mutation {
@@ -100,11 +100,11 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
-        getCatch: async (_, { id }) => {
+        catch: async (_, { id }) => {
             const res = await knex('catches').where({ id })
             return res[0];
         },
-        getCatches: async (_, { ids }) => {
+        catches: async (_, { ids }) => {
             if(ids && ids.length > 0){//@ts-ignore -- not inferred from if check    
                 return (await knex('catches').whereIn('id', ids))     
             }

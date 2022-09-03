@@ -28,9 +28,9 @@ export const typeDef =  gql `
     }
 
     type Query {
-        getMe: User
-        getUser(id: Int!): User
-        getUsers(ids: [Int]): [User]
+        me: User
+        user(id: Int!): User
+        users(ids: [Int]): [User]
     }
 
     type Mutation {
@@ -53,16 +53,16 @@ export const typeDef =  gql `
 
 export const resolver: Resolvers = {
     Query: {
-        getMe: async (_, __, { auth }) => {
+        me: async (_, __, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Missing')
             const user = await knex('users').where('id', auth).first()
             return user;
         },
-        getUser: async (_, { id } ) => {
+        user: async (_, { id } ) => {
             const user = await knex('users').where('id', id)
             return user[0]
         },
-        getUsers: async (_, { ids }) => {
+        users: async (_, { ids }) => {
             if(ids && ids.length > 0){ //@ts-ignore -- Not inferring from if check
                 const users = await knex('users').whereIn('id', ids)
                 return users;
@@ -146,11 +146,11 @@ export const resolver: Resolvers = {
             if(typeof count === 'string') return parseInt(count);
             return count;
         },
-        saved_waterbodies: async ({ id }, _, { dataSources }) => {
+        saved_waterbodies: async ({ id }) => {
             const res = await knex('savedWaterbodies').where({ user: id })
             const ids = res.map(x => x.waterbody)
-            if(ids.length === 0) return []
-            return (await dataSources.waterbodies.getWaterbodies({ ids }))
+            if(ids.length === 0) return [];
+            return (await knex('waterbodies').whereIn('id', ids))
         } 
     }
 }

@@ -28,8 +28,8 @@ export const typeDef =  gql`
     }
 
     type Query {
-        getWaterbody(id: Int!): Waterbody
-        getWaterbodies(value: String, classifications: [ClassificationEnum!], adminOne: [AdminOneEnum!], queryLocation: QueryLocation, offset: Int, limit: Int, sort: Sort): [Waterbody]
+        waterbody(id: Int!): Waterbody
+        waterbodies(value: String, classifications: [ClassificationEnum!], adminOne: [AdminOneEnum!], queryLocation: QueryLocation, offset: Int, limit: Int, sort: Sort): [Waterbody]
     }
 
     enum Sort {
@@ -52,13 +52,13 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
-        getWaterbody: async (_, { id }) => {
+        waterbody: async (_, { id }) => {
             const result = await knex('waterbodies')
                 .where('id', id)
                 .first()
             return result
         },
-        getWaterbodies: async (_, args) => {
+        waterbodies: async (_, args) => {
             const { value, classifications, adminOne, queryLocation, offset, limit, sort } = args;
             const query = knex('waterbodies')
             if(value) query.whereILike('name', (value+'%'))
@@ -105,7 +105,7 @@ export const resolver: Resolvers = {
                 .del().returning('waterbody')
             return res[0].waterbody
         },
-        addWaterbodyMedia: async (_, { id, media }, { auth, dataSources }) => {
+        addWaterbodyMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
             const waterbody = await knex('waterbodies').where({ id }).first()
