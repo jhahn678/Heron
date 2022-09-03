@@ -23,7 +23,12 @@ interface TokenPair {
 
 interface CreateTokenResult extends TokenPair {
     /** Token ID as UUID */
-    jwtid: string
+    jwtid: string,
+}
+
+interface RefreshExistingTokenResult extends CreateTokenResult {
+    /** USER ID */
+    user: number
 }
 
 interface VerifyAccessTokenOpts {
@@ -146,7 +151,7 @@ export const createTokenPairOnAuth = async (payload: TokenPayload): Promise<Toke
  * @param token refresh token
  * @returns Decoded refresh token payload
  */
-export const refreshExistingTokenPair = async (token: string): Promise<TokenPair> => {
+export const refreshExistingTokenPair = async (token: string): Promise<RefreshExistingTokenResult> => {
     try{
         const { id, jti } = <DecodedToken>verify(token, process.env.REFRESH_TOKEN_SECRET!)
         const { accessToken, refreshToken, jwtid } = createTokenPair({ id })
@@ -158,7 +163,7 @@ export const refreshExistingTokenPair = async (token: string): Promise<TokenPair
             .returning('*')
 
         if(result.length === 0) throw new AuthError('TOKEN_INVALID')
-        return { accessToken, refreshToken }
+        return { accessToken, refreshToken, jwtid, user: id }
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
             throw new AuthError('TOKEN_EXPIRED')

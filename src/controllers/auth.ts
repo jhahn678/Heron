@@ -141,12 +141,25 @@ export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},
 });
 
 interface NewAccessTokenReq {
+    /** Refresh Token */
     token: string
+    includeUser: boolean
 }
 
 export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAccessTokenReq>, res, next) => {
-    const { token } = req.body;
-    const { accessToken, refreshToken } = await refreshExistingTokenPair(token)
+    const { token, includeUser } = req.body;
+    const { accessToken, refreshToken, user: id } = await refreshExistingTokenPair(token)
+    if(includeUser){
+        const user = await knex('users')
+            .select('firstname', 'username', 'avatar')
+            .where({ id })
+            .first()
+        if(!user) throw new AuthError('AUTHENTICATION_FAILED')
+        const { firstname, username, avatar} = user;
+        res.status(200).json({ id, firstname, username, avatar, accessToken, refreshToken })
+    }else{
+        res.status(200).json({ accessToken, refreshToken })
+    }
     res.status(200).json({ accessToken, refreshToken })
 })
 
