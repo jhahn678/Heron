@@ -489,43 +489,43 @@ export type PendingContactInput = {
 
 export type Query = {
   __typename?: 'Query';
-  getCatch?: Maybe<Catch>;
-  getCatches?: Maybe<Array<Maybe<Catch>>>;
-  getLocation?: Maybe<Location>;
-  getMe?: Maybe<User>;
-  getUser?: Maybe<User>;
-  getUsers?: Maybe<Array<Maybe<User>>>;
-  getWaterbodies?: Maybe<Array<Maybe<Waterbody>>>;
-  getWaterbody?: Maybe<Waterbody>;
+  catch?: Maybe<Catch>;
+  catches?: Maybe<Array<Maybe<Catch>>>;
+  location?: Maybe<Location>;
+  me?: Maybe<User>;
+  user?: Maybe<User>;
+  users?: Maybe<Array<Maybe<User>>>;
+  waterbodies?: Maybe<Array<Maybe<Waterbody>>>;
+  waterbody?: Maybe<Waterbody>;
 };
 
 
-export type QueryGetCatchArgs = {
+export type QueryCatchArgs = {
   id: Scalars['Int'];
 };
 
 
-export type QueryGetCatchesArgs = {
+export type QueryCatchesArgs = {
   ids?: InputMaybe<Array<InputMaybe<Scalars['Int']>>>;
 };
 
 
-export type QueryGetLocationArgs = {
+export type QueryLocationArgs = {
   id: Scalars['Int'];
 };
 
 
-export type QueryGetUserArgs = {
+export type QueryUserArgs = {
   id: Scalars['Int'];
 };
 
 
-export type QueryGetUsersArgs = {
+export type QueryUsersArgs = {
   ids?: InputMaybe<Array<InputMaybe<Scalars['Int']>>>;
 };
 
 
-export type QueryGetWaterbodiesArgs = {
+export type QueryWaterbodiesArgs = {
   adminOne?: InputMaybe<Array<AdminOneEnum>>;
   classifications?: InputMaybe<Array<ClassificationEnum>>;
   limit?: InputMaybe<Scalars['Int']>;
@@ -536,7 +536,7 @@ export type QueryGetWaterbodiesArgs = {
 };
 
 
-export type QueryGetWaterbodyArgs = {
+export type QueryWaterbodyArgs = {
   id: Scalars['Int'];
 };
 
@@ -1245,14 +1245,14 @@ export interface PostalCodeScalarConfig extends GraphQLScalarTypeConfig<Resolver
 }
 
 export type QueryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
-  getCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<QueryGetCatchArgs, 'id'>>;
-  getCatches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryGetCatchesArgs>>;
-  getLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<QueryGetLocationArgs, 'id'>>;
-  getMe?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  getUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryGetUserArgs, 'id'>>;
-  getUsers?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<QueryGetUsersArgs>>;
-  getWaterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, Partial<QueryGetWaterbodiesArgs>>;
-  getWaterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType, RequireFields<QueryGetWaterbodyArgs, 'id'>>;
+  catch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<QueryCatchArgs, 'id'>>;
+  catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryCatchesArgs>>;
+  location?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<QueryLocationArgs, 'id'>>;
+  me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'id'>>;
+  users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<QueryUsersArgs>>;
+  waterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, Partial<QueryWaterbodiesArgs>>;
+  waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType, RequireFields<QueryWaterbodyArgs, 'id'>>;
 }>;
 
 export interface RgbScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['RGB'], any> {
