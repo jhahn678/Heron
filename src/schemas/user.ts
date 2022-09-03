@@ -79,10 +79,12 @@ export const resolver: Resolvers = {
                     this.from('contacts')  
                         .select('user_one as user')
                         .join('users', 'contacts.user_one', '=', 'users.id')
+                        .where('contacts.user_two', '=', auth)
                         .unionAll(function() {
                             this.from('contacts')
                                 .select('user_two as user')
                                 .join('users', 'contacts.user_two', '=', 'users.id')
+                                .where('contacts.user_one', '=', auth)
                         })
                 })
                 .orderBy('created_at', 'desc')
