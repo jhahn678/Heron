@@ -82,9 +82,9 @@ export const autocompleteWaterbodies = asyncWrapper(async (req: Request<{},{},{}
                 'id', 'name', 'classification', 'admin_one', 
                 'admin_two', 'country', 'ccode', 'subregion', 'weight', 
                 knex.raw("'WATERBODY' as type"),
-                knex.raw('rank_result(geom <-> ?, weight, ?) as rank', [point, 300000])
+                knex.raw('rank_result(simplified_geometries <-> ?, weight, ?) as rank', [point, 300000])
                 )
-                query.where(st.dwithin('geom', point, 300000))
+                query.where(st.dwithin('simplified_geometries', point, 300000))
             }
         }else{
             query.select(
