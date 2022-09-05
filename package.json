@@ -33,6 +33,7 @@
     "@aws-sdk/client-ses": "^3.162.0",
     "@aws-sdk/s3-request-presigner": "^3.150.0",
     "@graphql-tools/schema": "^9.0.1",
+    "@turf/boolean-within": "^6.5.0",
     "@turf/helpers": "^6.5.0",
     "apollo-server-core": "^3.10.1",
     "apollo-server-express": "^3.10.1",
