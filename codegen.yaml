@@ -11,6 +11,7 @@ generates:
         Catch: ./Catch#ICatch
         Location: ./Location#ILocation
         Waterbody: ./Waterbody#IWaterbody
+        WaterbodyReview: ./Waterbody#IWaterbodyReview
     plugins:
       - typescript
       - typescript-resolvers

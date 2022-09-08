@@ -30,7 +30,8 @@ async function startServer(){
         cache: 'bounded',
         context: ({ req }) => {
             const { authorization } = req.headers;
-            if(authorization && authorization.startsWith('Bearer')){
+            console.log(authorization)
+            if(authorization && authorization.startsWith('Bearer ')){
                 const token = authorization.split(' ')[1]
                 const decoded = verifyAccessToken(token)
                 return { auth: decoded.id }
