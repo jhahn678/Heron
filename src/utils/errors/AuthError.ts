@@ -13,7 +13,9 @@ type ErrorType =
 | 'TOKEN_INVALID' 
 | 'TOKEN_EXPIRED'
 | 'ACCESS_TOKEN_EXPIRED'
+| 'ACCESS_TOKEN_INVALID'
 | 'REFRESH_TOKEN_EXPIRED'
+| 'REFRESH_TOKEN_INVALID'
 | 'PASSWORD_RESET_EMAIL_FAILED'
 
 export class AuthError extends Error{
@@ -78,6 +80,12 @@ export class AuthError extends Error{
             case 'REFRESH_TOKEN_EXPIRED':
                 this.message = 'Refresh token expired';
                 this.status = 401;
+            case 'ACCESS_TOKEN_INVALID':
+                this.message = 'Access token invalid';
+                this.status = 401
+            case 'REFRESH_TOKEN_INVALID':
+                this.message = 'Refresh token invalid';
+                this.status = 401
             default:
                 break;
         }
