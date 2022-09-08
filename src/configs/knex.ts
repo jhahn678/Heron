@@ -4,7 +4,7 @@ import KnexPostgis from "knex-postgis";
 import { IUser, UserAvatar, IContact, IPendingContact } from "../types/User";
 import { ICatch, CatchMedia } from "../types/Catch";
 import { ILocation, LocationMedia } from "../types/Location";
-import { IGeometry, ISavedWaterbody, IWaterbody, WaterbodyMedia } from "../types/Waterbody";
+import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyReview, WaterbodyMedia } from "../types/Waterbody";
 import { IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
 const { PG_DB_CONNECTION } = process.env;
@@ -34,6 +34,7 @@ declare module 'knex/types/tables' {
         savedWaterbodies: ISavedWaterbody,
         waterbodies: IWaterbody,
         geometries: IGeometry,
-        refreshTokens: IRefreshToken
+        refreshTokens: IRefreshToken,
+        waterbodyReviews: IWaterbodyReview
     }
 }

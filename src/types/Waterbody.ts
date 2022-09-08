@@ -42,3 +42,24 @@ export interface IGeometry {
     admin_one: string,
     waterbody: number
 }
+
+export interface IWaterbodyReview {
+    id: number
+    waterbody: number
+    user: number
+    rating: number
+    text?: string
+    created_at: Date
+}
+
+export interface NewWaterbodyReview {
+    waterbody: number
+    rating: number
+    text: string
+}
+
+export interface WaterbodyReviewUpdate {
+    id: number
+    rating?: number
+    text?: string
+}
