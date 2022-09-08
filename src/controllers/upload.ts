@@ -12,7 +12,7 @@ import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 const { S3_BUCKET_NAME } = process.env;
 
 //Expiration for signed URL
-const UrlTTL = 60 * 5;
+const UrlTTL = 60; //seconds
 
 interface SignedUrlReq {
     /** Expecting mimetype "image/type" */
