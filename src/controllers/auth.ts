@@ -23,7 +23,7 @@ interface LoginRequest {
 export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res, next) => {
     const { identifier, password } = req.body;
     if(typeof identifier === 'string' && identifier.includes('@' && '.')){
-        const user = await knex('users').where('email', identifier).first()
+        const user = await knex('users').where('email', identifier.toLowerCase()).first()
         if(!user || !(await comparePasswords(password, user.password))){
             throw new AuthError('AUTHENTICATION_FAILED')
         }
@@ -37,7 +37,7 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
             avatar: user.avatar, 
         })
     }else if(typeof identifier === 'string'){
-        const user = await knex('users').where('username', identifier).first()
+        const user = await knex('users').where('username', identifier.toLowerCase()).first()
         if(!user || !(await comparePasswords(password, user.password))){
             throw new AuthError('AUTHENTICATION_FAILED')
         }
@@ -74,10 +74,10 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
     Joi.assert(username, Joi.string().trim().min(5).max(50))
     Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]/))
 
-    const userWithEmail = await knex('users').where('email', email).first()
+    const userWithEmail = await knex('users').where('email', email.toLowerCase()).first()
     if(userWithEmail) throw new AuthError('EMAIL_IN_USE')
 
-    const userWithUsername = await knex('users').where('username', username).first()
+    const userWithUsername = await knex('users').where('username', username.toLowerCase()).first()
     if(userWithUsername) throw new AuthError('USERNAME_IN_USE')
 
     const hashbrowns = await hashPassword(password)
@@ -86,8 +86,8 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
         .insert({
             firstname, 
             lastname, 
-            username, 
-            email, 
+            username: username.toLowerCase(), 
+            email: email.toLowerCase(), 
             password: hashbrowns
         })
         .returning('*')
@@ -125,7 +125,7 @@ interface CheckEmailQuery {
 
 export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},CheckEmailQuery>, res, next) => {
     const { email } = req.query;
-    const user = await knex('users').where('email', email).first()
+    const user = await knex('users').where('email', email.toLowerCase()).first()
     res.status(200).json({ email, available: Boolean(!user) })
 })
 
@@ -136,7 +136,7 @@ interface CheckUsernameQuery {
 
 export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},CheckUsernameQuery>, res, next) => {
     const { username } = req.query;
-    const user = await knex('users').where('username', username).first()
+    const user = await knex('users').where('username', username.toLowerCase()).first()
     res.status(200).json({ username, available: Boolean(!user) })
 });
 
@@ -171,7 +171,7 @@ interface ForgotPasswordReq {
 export const forgotPassword = asyncWrapper(async (req: Request<{},{},ForgotPasswordReq>, res, next) => {
     const { email } = req.body;
     if(!email) throw new AuthError('EMAIL_REQUIRED')
-    const user = await knex('users').where({ email }).first()
+    const user = await knex('users').where({ email: email.toLowerCase() }).first()
     if(user) {
         const token = crypto.randomBytes(32).toString('base64url')
         await redis.set(token, user.id, { EX: (60 * 15) })

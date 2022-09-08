@@ -3,15 +3,11 @@ import { asyncWrapper } from "../utils/errors/asyncWrapper";
 import { AuthError } from '../utils/errors/AuthError';
 import { UploadError } from '../utils/errors/UploadError';
 import { verifyAccessToken } from '../utils/auth/token';
-import { validateUploadFileType } from '../utils/validations/validateUploadFileType';
-import knex from '../configs/knex';
+import { validateUploadType } from '../utils/validations/validateUploadType';
 import { v4 as uuid } from 'uuid'
 import S3Client from '../configs/s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import {
-    PutObjectCommand,
-    DeleteObjectCommand
-} from '@aws-sdk/client-s3'
+import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 const { S3_BUCKET_NAME } = process.env;
 
@@ -19,31 +15,30 @@ const { S3_BUCKET_NAME } = process.env;
 const UrlTTL = 60 * 5;
 
 interface SignedUrlReq {
-    filetype: string
+    /** Expecting mimetype "image/type" */
+    mimetype: string
 }
 
 export const getSignedUploadUrl = asyncWrapper(async (req: Request<{},{},{},SignedUrlReq>, res, next) => {
-    const { filetype } = req.query
+    const { mimetype } = req.query
 
-    if(!filetype) throw new UploadError('FILE_TYPE_REQUIRED')
-    if(!validateUploadFileType(filetype)) throw new UploadError('INVALID_FILE_TYPE')
-
+    if(!mimetype) throw new UploadError('FILE_TYPE_REQUIRED')
+    if(!validateUploadType(mimetype)) throw new UploadError('INVALID_FILE_TYPE')
+    
     const { authorization } = req.headers;
     if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')
     const payload = verifyAccessToken(authorization.split(' ')[1], { error: 'EXPRESS' }) 
-    if(!payload) throw new AuthError('AUTHENTICATION_FAILED')
 
-    const fileKey = `${payload.id}-${uuid()}`;
+    const fileKey = `${payload.id}-${uuid()}.${mimetype.split('/')[1]}`;
+
     const putCommand = new PutObjectCommand({
         Bucket: S3_BUCKET_NAME,
         Key: fileKey,
-        ACL: "public-read",
-        ContentType: filetype
+        ContentType: mimetype
     })
 
     getSignedUrl(S3Client, putCommand, { expiresIn: UrlTTL })
         .then(url => res.status(200).json(url))
-        .catch(() => res.status(500).json({ error: 'Could not upload image to AWS'}))
-
+        .catch(() => res.status(500).json({ error: 'Could not obtain upload url'}))
 });
 

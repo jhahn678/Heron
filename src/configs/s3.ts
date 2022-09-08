@@ -6,7 +6,7 @@ const S3Client = new client({
     region: AWS_REGION!,
     credentials: {
         accessKeyId: S3_ACCESS_KEY!,
-        secretAccessKey: S3_SECRET_KEY!
+        secretAccessKey: S3_SECRET_KEY!,
     }
 })
 
