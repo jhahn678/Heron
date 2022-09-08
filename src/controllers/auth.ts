@@ -160,7 +160,6 @@ export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAcc
     }else{
         res.status(200).json({ accessToken, refreshToken })
     }
-    res.status(200).json({ accessToken, refreshToken })
 })
 
 
