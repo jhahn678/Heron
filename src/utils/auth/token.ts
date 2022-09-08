@@ -46,7 +46,6 @@ interface VerifyAccessTokenOpts {
  * @returns Decoded access token payload
  */
  export const verifyAccessToken = (token: string, options?: VerifyAccessTokenOpts): DecodedToken => {
-    if(typeof token !== 'string') throw new AuthError('AUTHENTICATION_FAILED')
     try{
         return <DecodedToken>verify(token, process.env.ACCESS_TOKEN_SECRET!)
     }catch(err: any){
@@ -70,20 +69,19 @@ interface VerifyAccessTokenOpts {
  * @returns Decoded Refresh Token
  */
 export const verifyRefreshToken = async (token: string): Promise<DecodedToken> => {
-    if(typeof token !== 'string') throw new AuthError('AUTHENTICATION_FAILED')
     try{
         const payload = <DecodedToken>verify(token, process.env.REFRESH_TOKEN_SECRET!)
         const verified = await knex('refreshTokens')
             .where('user', payload.id)
             .andWhere('jwtid', payload.jti)
             .first()
-        if(!verified) throw new AuthError('TOKEN_INVALID')
+        if(!verified) throw new Error()
         return payload
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
             throw new AuthError('REFRESH_TOKEN_EXPIRED')
         }else{
-            throw new AuthError('TOKEN_INVALID')
+            throw new AuthError('REFRESH_TOKEN_INVALID')
         }
     }
 }
@@ -111,7 +109,7 @@ export const createTokenPair = (payload: TokenPayload): CreateTokenResult => {
         audience: payload.id.toString(),
         issuer: 'Heron API',
         expiresIn: '1h' 
-        // expiresIn: '5s'
+        // expiresIn: 5
     })
 
     return { refreshToken, accessToken, jwtid }
@@ -136,7 +134,7 @@ export const createTokenPairOnAuth = async (payload: TokenPayload): Promise<Toke
             .onConflict('user').merge(['jwtid'])
             .returning('*')
 
-        if(result.length === 0) throw new AuthError('AUTHENTICATION_FAILED')
+        if(result.length === 0) throw new Error()
         return { accessToken, refreshToken }
 
     }catch(err: any){
@@ -163,13 +161,14 @@ export const refreshExistingTokenPair = async (token: string): Promise<RefreshEx
             .update('jwtid', jwtid)
             .returning('*')
 
-        if(result.length === 0) throw new AuthError('TOKEN_INVALID')
+        if(result.length === 0) throw new AuthError('REFRESH_TOKEN_INVALID')
         return { accessToken, refreshToken, jwtid, user: id }
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
             throw new AuthError('REFRESH_TOKEN_EXPIRED')
         }else{
-            throw new AuthError('TOKEN_INVALID')
+            console.error(err)
+            throw new AuthError('REFRESH_TOKEN_INVALID')
         }
     }
 }
