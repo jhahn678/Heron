@@ -121,12 +121,7 @@ export const resolver: Resolvers = {
             if(!auth) throw new AuthenticationError('Authentication Required')
             const catchObj: NewCatchBuilder = { user: auth }
 
-            if(waterbody){
-                const exists = await knex('waterbodies').where({ id: waterbody }).first()
-                if(!exists) throw new RequestError('RESOURCE_NOT_FOUND')
-                catchObj['waterbody'] = waterbody;
-            }
-
+            if(waterbody) catchObj['waterbody'] = waterbody;
             if(title) catchObj['title'] = title;
             if(description) catchObj['description'] = description;
             if(species) catchObj['species'] = species;

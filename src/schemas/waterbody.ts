@@ -1,14 +1,13 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
 import { Resolvers, Sort } from '../types/graphql'
-import { RequestError } from '../utils/errors/RequestError'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
 export const typeDef =  gql`
 
     type Waterbody {
-        id: Int
+        id: Int!
         name: String
         classification: String
         country: String
@@ -23,6 +22,8 @@ export const typeDef =  gql`
         total_locations: Int
         media(offset: Int, limit: Int): [WaterbodyMedia]
         total_media: Int
+        reviews(offset: Int, limit: Int): [WaterbodyReview]
+        total_reviews: Int
         distance: Float
         rank: Float
     }
@@ -45,8 +46,7 @@ export const typeDef =  gql`
 
     type Mutation {
         addWaterbodyMedia(id: Int!, media: [MediaInput!]!): [WaterbodyMedia]
-        saveWaterbody(id: Int!): Int
-        unsaveWaterbody(id: Int!): Int
+        toggleSaveWaterbody(id: Int!): Int
     }
 `
 
@@ -86,30 +86,23 @@ export const resolver: Resolvers = {
         },
     },
     Mutation: {
-        saveWaterbody: async (_, { id }, { auth }) => {
+        toggleSaveWaterbody: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const waterbody = await knex('waterbodies').where({ id }).first()
-            if(!waterbody) throw new RequestError('RESOURCE_NOT_FOUND')
-
-            const res = await knex('savedWaterbodies')
-                .insert({ user: auth, waterbody: id })
-                .returning('waterbody')
-            return res[0].waterbody
-        },
-        unsaveWaterbody: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const res = await knex('savedWaterbodies')
+            const deleted = await knex('savedWaterbodies')
                 .where({ user: auth, waterbody: id })
                 .del().returning('waterbody')
-            return res[0].waterbody
+
+            if(deleted.length > 0) return deleted[0].waterbody
+
+            const inserted = await knex('savedWaterbodies')
+                .insert({ user: auth, waterbody: id })
+                .returning('waterbody')
+            
+            return inserted[0].waterbody
         },
         addWaterbodyMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const waterbody = await knex('waterbodies').where({ id }).first()
-            if(!waterbody) throw new RequestError('TRANSACTION_NOT_FOUND')
 
             const valid = media.filter(x => validateMediaUrl(x.url))
             const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
@@ -131,6 +124,7 @@ export const resolver: Resolvers = {
         catches: async ({ id }, { offset, limit }) => {
             const catches = await knex('catches')
                 .where({ waterbody: id })
+                .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 4)
             return catches;
@@ -144,6 +138,7 @@ export const resolver: Resolvers = {
         locations: async ({ id }, { offset, limit }) => {
             const locations = await knex('locations')
                 .where({ waterbody: id })
+                .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 4)
             return locations;
@@ -157,6 +152,7 @@ export const resolver: Resolvers = {
         media: async ({ id }, { offset, limit }) => {
             const media = await knex('waterbodyMedia')
                 .where({ waterbody: id })
+                .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 1)
             return media;
@@ -164,6 +160,20 @@ export const resolver: Resolvers = {
         total_media: async ({ id }) => {
             const result = await knex('waterbodyMedia').where({ waterbody: id }).count()
             const { count } = result[0]
+            if(typeof count !== 'number') return parseInt(count)
+            return count
+        },
+        reviews: async ({ id }, { offset, limit }) => {
+            const results = await knex('waterbodyReviews')
+                .where({ waterbody: id })
+                .orderBy('created_at', 'desc')
+                .offset(offset || 0)
+                .limit(limit || 10)
+            return results
+        },
+        total_reviews: async ({ id }) => {
+            const result = await knex('waterbodyReviews').where({ waterbody: id }).count()
+            const { count } = result[0];
             if(typeof count !== 'number') return parseInt(count)
             return count
         }

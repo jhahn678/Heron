@@ -26,9 +26,13 @@ import {
     resolver as enumResolver
 } from './enums'
 import {
-    typeDef as GeoJsonTypeDef,
+    typeDef as geojsonTypeDef,
     resolver as geojsonResolver
 } from './geojson'
+import {
+    typeDef as waterbodyReviewTypeDef,
+    resolver as waterbodyReviewResolver
+} from './waterbodyReview'
 
 import { typeDefs as scalarTypeDefs } from "graphql-scalars";
 import { mergeTypeDefs, mergeResolvers } from "@graphql-tools/merge";
@@ -44,7 +48,8 @@ const typesArray = [
     catchTypeDef,
     locationTypeDef,
     waterbodyTypeDef,
-    GeoJsonTypeDef
+    geojsonTypeDef,
+    waterbodyReviewTypeDef
 ]
 
 const resolversArray = [
@@ -54,7 +59,8 @@ const resolversArray = [
     catchResolver,
     waterbodyResolver,
     locationResolver,
-    geojsonResolver
+    geojsonResolver,
+    waterbodyReviewResolver
 ]
 
 export const typeDefs = mergeTypeDefs(typesArray)

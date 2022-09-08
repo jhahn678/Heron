@@ -5,7 +5,7 @@ import { IPendingContact } from '../types/User'
 import { RequestError } from '../utils/errors/RequestError'
 import { removeUndefined } from '../utils/validations/removeUndefined'
 
-export const typeDef =  gql `
+export const typeDef =  gql`
     type User { 
         id: Int!
         firstname: String
@@ -136,11 +136,15 @@ export const resolver: Resolvers = {
         },
         locations: async ({ id }, __, { auth }) => {
             if(auth !== id) throw new AuthenticationError('Unauthorized')
-            const locations = await knex('locations').where('user', id)
+            const locations = await knex('locations')
+                .where('user', id)
+                .orderBy('created_at', 'desc')
             return locations;
         },
         catches: async ({ id }) => {
-            const catches = await knex('catches').where('user', id)
+            const catches = await knex('catches')
+                .where('user', id)
+                .orderBy('created_at', 'desc')
             return catches;
         },
         pending_contacts: async ({ id }, _, { auth }) => {

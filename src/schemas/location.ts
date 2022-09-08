@@ -89,9 +89,6 @@ export const resolver: Resolvers = {
 
             const { coordinates, waterbody, media, title, description, hexcolor } = location;
 
-            const exists = await knex('waterbodies').where({ id: waterbody }).first()
-            if(!exists) throw new RequestError('INVALID_REFERENCE')
-
             const newLocation: NewLocationObj = { user: auth, waterbody };
 
             if(title) newLocation['title'] = title
@@ -119,9 +116,6 @@ export const resolver: Resolvers = {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { coordinates, waterbody, media, title, description, hexcolor } = location;
-
-            const exists = await knex('waterbodies').where({ id: waterbody }).first()
-            if(!exists) throw new RequestError('INVALID_REFERENCE')
 
             const newLocation: NewLocationObj = { user: auth, waterbody };
 
