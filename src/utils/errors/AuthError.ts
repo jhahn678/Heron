@@ -1,10 +1,19 @@
 type ErrorType = 
-| 'INVALID_CREDENTIALS' | 'EMAIL_IN_USE'
-| 'USERNAME_IN_USE' | 'EMAIL_INVALID'
-| 'USERNAME_INVALID' | 'EMAIL_REQUIRED'
-| 'USERNAME_REQUIRED' | 'PASSWORD_REQUIRED'
-| 'AUTHENTICATION_REQUIRED' | 'AUTHENTICATION_FAILED'
-| 'UNAUTHORIZED' | 'TOKEN_INVALID' | 'TOKEN_EXPIRED'
+| 'INVALID_CREDENTIALS' 
+| 'EMAIL_IN_USE'
+| 'USERNAME_IN_USE' 
+| 'EMAIL_INVALID'
+| 'USERNAME_INVALID' 
+| 'EMAIL_REQUIRED'
+| 'USERNAME_REQUIRED' 
+| 'PASSWORD_REQUIRED'
+| 'AUTHENTICATION_REQUIRED' 
+| 'AUTHENTICATION_FAILED'
+| 'UNAUTHORIZED' 
+| 'TOKEN_INVALID' 
+| 'TOKEN_EXPIRED'
+| 'ACCESS_TOKEN_EXPIRED'
+| 'REFRESH_TOKEN_EXPIRED'
 | 'PASSWORD_RESET_EMAIL_FAILED'
 
 export class AuthError extends Error{
@@ -42,20 +51,33 @@ export class AuthError extends Error{
                 this.message = 'Could not authenticate request';
                 break;
             case 'AUTHENTICATION_REQUIRED':
+                this.status = 403;
                 this.message = 'Authentication not provided'
                 break;
             case 'UNAUTHORIZED':
+                this.status = 403;
                 this.message = 'Request not authorized';
                 break;
             case 'TOKEN_INVALID':
+                this.status = 401;
                 this.message = 'The provided authentication token is invalid';
                 break;
             case 'TOKEN_EXPIRED':
+                this.status = 401;
                 this.message = 'The provided authentication token is expired';
                 break;
             case 'PASSWORD_RESET_EMAIL_FAILED':
                 this.message = 'Could not send password reset email';
                 break;
+            case 'ACCESS_TOKEN_EXPIRED':
+                //Changing this will affect front end error handling
+                //message text is being used as a means of auto refreshing access token
+                this.message = 'Access token expired';
+                this.status = 401;
+                break;
+            case 'REFRESH_TOKEN_EXPIRED':
+                this.message = 'Refresh token expired';
+                this.status = 401;
             default:
                 break;
         }

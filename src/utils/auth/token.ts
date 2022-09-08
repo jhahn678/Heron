@@ -52,7 +52,7 @@ interface VerifyAccessTokenOpts {
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
             if(options?.error && options.error === 'EXPRESS'){
-                throw new AuthError('TOKEN_INVALID')
+                throw new AuthError('ACCESS_TOKEN_EXPIRED')
             }else{
                 throw new TokenExpiredError()
             }
@@ -81,7 +81,7 @@ export const verifyRefreshToken = async (token: string): Promise<DecodedToken> =
         return payload
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
-            throw new AuthError('TOKEN_EXPIRED')
+            throw new AuthError('REFRESH_TOKEN_EXPIRED')
         }else{
             throw new AuthError('TOKEN_INVALID')
         }
@@ -110,7 +110,8 @@ export const createTokenPair = (payload: TokenPayload): CreateTokenResult => {
         algorithm: 'HS256',
         audience: payload.id.toString(),
         issuer: 'Heron API',
-        expiresIn: (60 * 60) //1 HOUR
+        expiresIn: '1h' 
+        // expiresIn: '5s'
     })
 
     return { refreshToken, accessToken, jwtid }
@@ -166,7 +167,7 @@ export const refreshExistingTokenPair = async (token: string): Promise<RefreshEx
         return { accessToken, refreshToken, jwtid, user: id }
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
-            throw new AuthError('TOKEN_EXPIRED')
+            throw new AuthError('REFRESH_TOKEN_EXPIRED')
         }else{
             throw new AuthError('TOKEN_INVALID')
         }
