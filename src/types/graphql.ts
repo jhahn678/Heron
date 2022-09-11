@@ -628,6 +628,7 @@ export type Waterbody = {
   __typename?: 'Waterbody';
   admin_one?: Maybe<Array<Maybe<Scalars['String']>>>;
   admin_two?: Maybe<Array<Maybe<Scalars['String']>>>;
+  average_rating?: Maybe<Scalars['Float']>;
   catches?: Maybe<Array<Maybe<Catch>>>;
   ccode?: Maybe<Scalars['String']>;
   classification?: Maybe<Scalars['String']>;
@@ -1403,6 +1404,7 @@ export interface VoidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 export type WaterbodyResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Waterbody'] = ResolversParentTypes['Waterbody']> = ResolversObject<{
   admin_one?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
   admin_two?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  average_rating?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<WaterbodyCatchesArgs>>;
   ccode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   classification?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
