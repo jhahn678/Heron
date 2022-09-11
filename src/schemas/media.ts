@@ -52,7 +52,7 @@ export const resolver = {
             if(media.location){
                 return 'LocationMedia'
             }
-            return null;
+            return 'Media';
         }
     }
 }
