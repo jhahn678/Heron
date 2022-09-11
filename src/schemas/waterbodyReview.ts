@@ -1,7 +1,7 @@
 import { AuthenticationError, gql } from 'apollo-server-core'
 import knex from '../configs/knex' 
-import { Resolvers } from '../types/graphql'
-import { WaterbodyReviewUpdate } from '../types/Waterbody'
+import { Resolvers, ReviewSort } from '../types/graphql'
+import { IWaterbodyReview, WaterbodyReviewUpdate } from '../types/Waterbody'
 import { WaterbodyReviewError } from '../utils/errors/WaterbodyReviewError'
 
 export const typeDef = gql`
@@ -15,7 +15,7 @@ export const typeDef = gql`
     }
 
     type Query {
-        waterbodyReviews(id: Int!, offset: Int, limit: Int): [WaterbodyReview]
+        waterbodyReviews(id: Int!, offset: Int, limit: Int, sort: ReviewSort): [WaterbodyReview]
     }
 
     type Mutation {
@@ -39,9 +39,26 @@ export const typeDef = gql`
 
 export const resolver: Resolvers = {
     Query: {
-        waterbodyReviews: async (_, { id, offset, limit }) => {
+        waterbodyReviews: async (_, { id, offset, limit, sort }) => {
+            let sortField: keyof IWaterbodyReview = 'created_at';
+            let sortOrder: 'asc' | 'desc' = 'desc';
+            switch(sort){
+                case ReviewSort.CreatedAtNewest:
+                    sortField = 'created_at';
+                    sortOrder = 'desc';
+                case ReviewSort.RatingHighest:
+                    sortField = 'rating';
+                    sortOrder = 'asc';
+                case ReviewSort.RatingLowest:
+                    sortField = 'rating';
+                    sortOrder = 'asc';
+                case ReviewSort.CreatedAtOldest:
+                    sortField = 'created_at';
+                    sortOrder = 'asc';
+            }
             const results = await knex('waterbodyReviews')
                 .where({ waterbody: id })
+                .orderBy(sortField, sortOrder)
                 .offset(offset || 0)
                 .limit(limit || 10)
             return results;

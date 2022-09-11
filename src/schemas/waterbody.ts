@@ -1,6 +1,7 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
-import { Resolvers, Sort } from '../types/graphql'
+import { Resolvers, ReviewSort, Sort, Waterbody } from '../types/graphql'
+import { IWaterbody, IWaterbodyReview } from '../types/Waterbody'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
@@ -22,7 +23,7 @@ export const typeDef =  gql`
         total_locations: Int
         media(offset: Int, limit: Int): [WaterbodyMedia]
         total_media: Int
-        reviews(offset: Int, limit: Int): [WaterbodyReview]
+        reviews(offset: Int, limit: Int, sort: ReviewSort): [WaterbodyReview]
         total_reviews: Int
         average_rating: Float
         distance: Float
@@ -37,6 +38,13 @@ export const typeDef =  gql`
     enum Sort {
         rank
         distance
+    }
+
+    enum ReviewSort {
+        CREATED_AT_NEWEST
+        CREATED_AT_OLDEST
+        RATING_HIGHEST
+        RATING_LOWEST
     }
 
     input QueryLocation {
@@ -102,16 +110,16 @@ export const resolver: Resolvers = {
             
             return inserted[0].waterbody
         },
-        addWaterbodyMedia: async (_, { id, media }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
+        // addWaterbodyMedia: async (_, { id, media }, { auth }) => {
+        //     if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const valid = media.filter(x => validateMediaUrl(x.url))
-            const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
-            if(uploads.length === 0) throw new UploadError('INVALID_URL')
+        //     const valid = media.filter(x => validateMediaUrl(x.url))
+        //     const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
+        //     if(uploads.length === 0) throw new UploadError('INVALID_URL')
             
-            const res = await knex('waterbodyMedia').insert(uploads).returning('*')
-            return res;
-        },
+        //     const res = await knex('waterbodyMedia').insert(uploads).returning('*')
+        //     return res;
+        // },
     },
     Waterbody: {
         geometries: async ({ id: waterbody }) => {
@@ -164,16 +172,34 @@ export const resolver: Resolvers = {
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
-        reviews: async ({ id }, { offset, limit }) => {
+        reviews: async ({ id }, { offset, limit, sort }) => {
+            let sortField: keyof IWaterbodyReview = 'created_at';
+            let sortOrder: 'asc' | 'desc' = 'desc';
+            switch(sort){
+                case ReviewSort.CreatedAtNewest:
+                    sortField = 'created_at';
+                    sortOrder = 'desc';
+                case ReviewSort.RatingHighest:
+                    sortField = 'rating';
+                    sortOrder = 'asc';
+                case ReviewSort.RatingLowest:
+                    sortField = 'rating';
+                    sortOrder = 'asc';
+                case ReviewSort.CreatedAtOldest:
+                    sortField = 'created_at';
+                    sortOrder = 'asc';
+            }
             const results = await knex('waterbodyReviews')
                 .where({ waterbody: id })
-                .orderBy('created_at', 'desc')
+                .orderBy(sortField, sortOrder)
                 .offset(offset || 0)
                 .limit(limit || 10)
             return results
         },
         total_reviews: async ({ id }) => {
-            const result = await knex('waterbodyReviews').where({ waterbody: id }).count()
+            const result = await knex('waterbodyReviews')
+                .where({ waterbody: id })
+                .count()
             const { count } = result[0];
             if(typeof count !== 'number') return parseInt(count)
             return count

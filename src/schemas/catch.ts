@@ -234,9 +234,10 @@ export const resolver: Resolvers = {
             const result = await knex('waterbodies').where({ id }).first()
             return result;
         },
-        media: async ({ id }) => {
-            return (await knex('catchMedia').where({ id }))
-        }
+        // media: async ({ id }) => {
+        //     const result = await knex('catchMedia').where({ catch: id })
+        //     return result;
+        // }
     }
 }
 

@@ -7,7 +7,8 @@ import {
     typeDef as pendingContactTypeDef
 } from './pendingContact'
 import {
-    typeDef as mediaTypeDef
+    typeDef as mediaTypeDef,
+    resolver as mediaResolver
 } from './media'
 import {
     typeDef as catchTypeDef,
@@ -60,7 +61,8 @@ const resolversArray = [
     waterbodyResolver,
     locationResolver,
     geojsonResolver,
-    waterbodyReviewResolver
+    waterbodyReviewResolver,
+    mediaResolver
 ]
 
 export const typeDefs = mergeTypeDefs(typesArray)
