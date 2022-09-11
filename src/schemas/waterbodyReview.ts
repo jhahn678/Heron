@@ -52,14 +52,13 @@ export const resolver: Resolvers = {
             if(!auth) throw new AuthenticationError('Authentication Required')
             const query = knex('waterbodyReviews')
             const { rating, waterbody, text } = input;
-            if(rating > 5 || rating < 0) throw new WaterbodyReviewError('INVALID_RATING')
-            query.insert({ waterbody, rating, text }).returning('*')
+            if(rating > 5 || rating < 0) throw new WaterbodyReviewError('Invalid rating provided')
+            query.insert({ waterbody, rating, text, user: auth }).returning('*')
             const result = await query;
             return result[0]
         },
         deleteWaterbodyReview: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-
             const result = await knex('waterbodyReviews')
                 .where({ user: auth, id })
                 .del()
