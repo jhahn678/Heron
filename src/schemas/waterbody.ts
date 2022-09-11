@@ -24,6 +24,7 @@ export const typeDef =  gql`
         total_media: Int
         reviews(offset: Int, limit: Int): [WaterbodyReview]
         total_reviews: Int
+        average_rating: Float
         distance: Float
         rank: Float
     }
@@ -176,6 +177,12 @@ export const resolver: Resolvers = {
             const { count } = result[0];
             if(typeof count !== 'number') return parseInt(count)
             return count
+        },
+        average_rating: async ({ id }) => {
+            const result = await knex('waterbodyReviews')
+                .where({ waterbody: id })
+                .avg('rating')
+            return result[0].avg
         }
      }
 }
