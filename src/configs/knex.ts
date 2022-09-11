@@ -2,9 +2,9 @@ require('dotenv').config()
 import Knex from "knex";
 import KnexPostgis from "knex-postgis"; 
 import { IUser, UserAvatar, IContact, IPendingContact } from "../types/User";
-import { ICatch, CatchMedia } from "../types/Catch";
-import { ILocation, LocationMedia } from "../types/Location";
-import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyReview, WaterbodyMedia } from "../types/Waterbody";
+import { ICatch, ICatchMedia } from "../types/Catch";
+import { ILocation, ILocationMedia } from "../types/Location";
+import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyMedia, IWaterbodyReview } from "../types/Waterbody";
 import { IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
 const { PG_DB_CONNECTION } = process.env;
@@ -27,14 +27,14 @@ declare module 'knex/types/tables' {
         contacts: IContact,
         pendingContacts: IPendingContact,
         catches: ICatch,
-        catchMedia: CatchMedia,
+        catchMedia: ICatchMedia,
         locations: ILocation,
-        locationMedia: LocationMedia,
-        waterbodyMedia: WaterbodyMedia,
-        savedWaterbodies: ISavedWaterbody,
+        locationMedia: ILocationMedia,
         waterbodies: IWaterbody,
+        waterbodyMedia: IWaterbodyMedia,
+        waterbodyReviews: IWaterbodyReview
+        savedWaterbodies: ISavedWaterbody,
         geometries: IGeometry,
         refreshTokens: IRefreshToken,
-        waterbodyReviews: IWaterbodyReview
     }
 }
