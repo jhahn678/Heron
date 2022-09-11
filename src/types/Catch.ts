@@ -19,7 +19,7 @@ export interface ICatch {
     updated_at: Date
 } 
 
-export interface CatchMedia {
+export interface ICatchMedia {
     id: number
     key: string
     url: string

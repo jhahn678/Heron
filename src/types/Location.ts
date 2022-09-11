@@ -11,7 +11,7 @@ export interface ILocation {
     hexcolor: string
 }
 
-export interface LocationMedia {
+export interface ILocationMedia {
     id: number,
     user: number,
     location: number,

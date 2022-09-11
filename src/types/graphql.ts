@@ -1,14 +1,15 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
 import { IUser, IPendingContact } from './User';
-import { ICatch } from './Catch';
-import { ILocation } from './Location';
-import { IWaterbody, IWaterbodyReview } from './Waterbody';
+import { ICatch, ICatchMedia } from './Catch';
+import { ILocation, ILocationMedia } from './Location';
+import { IWaterbody, IWaterbodyMedia, IWaterbodyReview } from './Waterbody';
 import { Context } from './context';
 export type Maybe<T> = T | null | undefined;
 export type InputMaybe<T> = T | null | undefined;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -192,6 +193,14 @@ export enum AdminOneEnum {
   Zacatecas = 'zacatecas'
 }
 
+export type AnyMedia = {
+  __typename?: 'AnyMedia';
+  created_at: Scalars['DateTime'];
+  id: Scalars['Int'];
+  url: Scalars['String'];
+  user?: Maybe<User>;
+};
+
 export type Catch = {
   __typename?: 'Catch';
   created_at?: Maybe<Scalars['DateTime']>;
@@ -220,13 +229,13 @@ export type CatchDetails = {
   weight?: InputMaybe<WeightInput>;
 };
 
-export type CatchMedia = Media & {
+export type CatchMedia = {
   __typename?: 'CatchMedia';
-  catch: Scalars['Int'];
+  catch?: Maybe<Catch>;
   created_at: Scalars['DateTime'];
   id: Scalars['Int'];
   url: Scalars['String'];
-  user: Scalars['Int'];
+  user?: Maybe<User>;
 };
 
 export enum ClassificationEnum {
@@ -269,26 +278,27 @@ export type LocationDetails = {
   title?: InputMaybe<Scalars['String']>;
 };
 
-export type LocationMedia = Media & {
+export type LocationMedia = {
   __typename?: 'LocationMedia';
   created_at: Scalars['DateTime'];
   id: Scalars['Int'];
-  location: Scalars['Int'];
+  location?: Maybe<Location>;
   url: Scalars['String'];
-  user: Scalars['Int'];
+  user?: Maybe<User>;
 };
 
-export type Media = {
-  created_at: Scalars['DateTime'];
-  id: Scalars['Int'];
-  url: Scalars['String'];
-  user: Scalars['Int'];
-};
+export type Media = AnyMedia | CatchMedia | LocationMedia | WaterbodyMedia;
 
 export type MediaInput = {
   key: Scalars['String'];
   url: Scalars['String'];
 };
+
+export enum MediaType {
+  Catch = 'CATCH',
+  Location = 'LOCATION',
+  Waterbody = 'WATERBODY'
+}
 
 export type Mutation = {
   __typename?: 'Mutation';
@@ -512,6 +522,7 @@ export type Query = {
   catches?: Maybe<Array<Maybe<Catch>>>;
   location?: Maybe<Location>;
   me?: Maybe<User>;
+  media?: Maybe<Array<Maybe<Media>>>;
   user?: Maybe<User>;
   users?: Maybe<Array<Maybe<User>>>;
   waterbodies?: Maybe<Array<Maybe<Waterbody>>>;
@@ -538,6 +549,12 @@ export type QueryCatchesArgs = {
 
 export type QueryLocationArgs = {
   id: Scalars['Int'];
+};
+
+
+export type QueryMediaArgs = {
+  id: Scalars['Int'];
+  type: MediaType;
 };
 
 
@@ -571,6 +588,7 @@ export type QueryWaterbodyReviewsArgs = {
   id: Scalars['Int'];
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
+  sort?: InputMaybe<ReviewSort>;
 };
 
 export type QueryLocation = {
@@ -578,6 +596,13 @@ export type QueryLocation = {
   longitude: Scalars['Float'];
   withinMeters: Scalars['Int'];
 };
+
+export enum ReviewSort {
+  CreatedAtNewest = 'CREATED_AT_NEWEST',
+  CreatedAtOldest = 'CREATED_AT_OLDEST',
+  RatingHighest = 'RATING_HIGHEST',
+  RatingLowest = 'RATING_LOWEST'
+}
 
 export type ReviewUpdate = {
   id: Scalars['Int'];
@@ -670,15 +695,16 @@ export type WaterbodyMediaArgs = {
 export type WaterbodyReviewsArgs = {
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
+  sort?: InputMaybe<ReviewSort>;
 };
 
-export type WaterbodyMedia = Media & {
+export type WaterbodyMedia = {
   __typename?: 'WaterbodyMedia';
   created_at: Scalars['DateTime'];
   id: Scalars['Int'];
   url: Scalars['String'];
-  user: Scalars['Int'];
-  waterbody: Scalars['Int'];
+  user?: Maybe<User>;
+  waterbody?: Maybe<Waterbody>;
 };
 
 export type WaterbodyReview = {
@@ -785,12 +811,13 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 export type ResolversTypes = ResolversObject<{
   AccountNumber: ResolverTypeWrapper<Scalars['AccountNumber']>;
   AdminOneEnum: AdminOneEnum;
+  AnyMedia: ResolverTypeWrapper<Omit<AnyMedia, 'user'> & { user?: Maybe<ResolversTypes['User']> }>;
   BigInt: ResolverTypeWrapper<Scalars['BigInt']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
   Byte: ResolverTypeWrapper<Scalars['Byte']>;
   Catch: ResolverTypeWrapper<ICatch>;
   CatchDetails: CatchDetails;
-  CatchMedia: ResolverTypeWrapper<CatchMedia>;
+  CatchMedia: ResolverTypeWrapper<ICatchMedia>;
   ClassificationEnum: ClassificationEnum;
   CountryCode: ResolverTypeWrapper<Scalars['CountryCode']>;
   Cuid: ResolverTypeWrapper<Scalars['Cuid']>;
@@ -828,12 +855,13 @@ export type ResolversTypes = ResolversObject<{
   Locale: ResolverTypeWrapper<Scalars['Locale']>;
   Location: ResolverTypeWrapper<ILocation>;
   LocationDetails: LocationDetails;
-  LocationMedia: ResolverTypeWrapper<LocationMedia>;
+  LocationMedia: ResolverTypeWrapper<ILocationMedia>;
   Long: ResolverTypeWrapper<Scalars['Long']>;
   Longitude: ResolverTypeWrapper<Scalars['Longitude']>;
   MAC: ResolverTypeWrapper<Scalars['MAC']>;
-  Media: ResolversTypes['CatchMedia'] | ResolversTypes['LocationMedia'] | ResolversTypes['WaterbodyMedia'];
+  Media: ResolversTypes['AnyMedia'] | ResolversTypes['CatchMedia'] | ResolversTypes['LocationMedia'] | ResolversTypes['WaterbodyMedia'];
   MediaInput: MediaInput;
+  MediaType: MediaType;
   MultiLineString: ResolverTypeWrapper<Scalars['MultiLineString']>;
   MultiPolygon: ResolverTypeWrapper<Scalars['MultiPolygon']>;
   Mutation: ResolverTypeWrapper<{}>;
@@ -862,6 +890,7 @@ export type ResolversTypes = ResolversObject<{
   QueryLocation: QueryLocation;
   RGB: ResolverTypeWrapper<Scalars['RGB']>;
   RGBA: ResolverTypeWrapper<Scalars['RGBA']>;
+  ReviewSort: ReviewSort;
   ReviewUpdate: ReviewUpdate;
   RoutingNumber: ResolverTypeWrapper<Scalars['RoutingNumber']>;
   SafeInt: ResolverTypeWrapper<Scalars['SafeInt']>;
@@ -881,7 +910,7 @@ export type ResolversTypes = ResolversObject<{
   UtcOffset: ResolverTypeWrapper<Scalars['UtcOffset']>;
   Void: ResolverTypeWrapper<Scalars['Void']>;
   Waterbody: ResolverTypeWrapper<IWaterbody>;
-  WaterbodyMedia: ResolverTypeWrapper<WaterbodyMedia>;
+  WaterbodyMedia: ResolverTypeWrapper<IWaterbodyMedia>;
   WaterbodyReview: ResolverTypeWrapper<IWaterbodyReview>;
   WeightInput: WeightInput;
   WeightUnit: WeightUnit;
@@ -892,12 +921,13 @@ export type ResolversTypes = ResolversObject<{
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   AccountNumber: Scalars['AccountNumber'];
+  AnyMedia: Omit<AnyMedia, 'user'> & { user?: Maybe<ResolversParentTypes['User']> };
   BigInt: Scalars['BigInt'];
   Boolean: Scalars['Boolean'];
   Byte: Scalars['Byte'];
   Catch: ICatch;
   CatchDetails: CatchDetails;
-  CatchMedia: CatchMedia;
+  CatchMedia: ICatchMedia;
   CountryCode: Scalars['CountryCode'];
   Cuid: Scalars['Cuid'];
   Currency: Scalars['Currency'];
@@ -933,11 +963,11 @@ export type ResolversParentTypes = ResolversObject<{
   Locale: Scalars['Locale'];
   Location: ILocation;
   LocationDetails: LocationDetails;
-  LocationMedia: LocationMedia;
+  LocationMedia: ILocationMedia;
   Long: Scalars['Long'];
   Longitude: Scalars['Longitude'];
   MAC: Scalars['MAC'];
-  Media: ResolversParentTypes['CatchMedia'] | ResolversParentTypes['LocationMedia'] | ResolversParentTypes['WaterbodyMedia'];
+  Media: ResolversParentTypes['AnyMedia'] | ResolversParentTypes['CatchMedia'] | ResolversParentTypes['LocationMedia'] | ResolversParentTypes['WaterbodyMedia'];
   MediaInput: MediaInput;
   MultiLineString: Scalars['MultiLineString'];
   MultiPolygon: Scalars['MultiPolygon'];
@@ -984,7 +1014,7 @@ export type ResolversParentTypes = ResolversObject<{
   UtcOffset: Scalars['UtcOffset'];
   Void: Scalars['Void'];
   Waterbody: IWaterbody;
-  WaterbodyMedia: WaterbodyMedia;
+  WaterbodyMedia: IWaterbodyMedia;
   WaterbodyReview: IWaterbodyReview;
   WeightInput: WeightInput;
   pointUpdate: PointUpdate;
@@ -1014,6 +1044,14 @@ export interface AccountNumberScalarConfig extends GraphQLScalarTypeConfig<Resol
   name: 'AccountNumber';
 }
 
+export type AnyMediaResolvers<ContextType = Context, ParentType extends ResolversParentTypes['AnyMedia'] = ResolversParentTypes['AnyMedia']> = ResolversObject<{
+  created_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
   name: 'BigInt';
 }
@@ -1042,11 +1080,11 @@ export type CatchResolvers<ContextType = Context, ParentType extends ResolversPa
 }>;
 
 export type CatchMediaResolvers<ContextType = Context, ParentType extends ResolversParentTypes['CatchMedia'] = ResolversParentTypes['CatchMedia']> = ResolversObject<{
-  catch?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  catch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType>;
   created_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1180,9 +1218,9 @@ export type LocationResolvers<ContextType = Context, ParentType extends Resolver
 export type LocationMediaResolvers<ContextType = Context, ParentType extends ResolversParentTypes['LocationMedia'] = ResolversParentTypes['LocationMedia']> = ResolversObject<{
   created_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  location?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  location?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1199,11 +1237,7 @@ export interface MacScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 }
 
 export type MediaResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Media'] = ResolversParentTypes['Media']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'CatchMedia' | 'LocationMedia' | 'WaterbodyMedia', ParentType, ContextType>;
-  created_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'AnyMedia' | 'CatchMedia' | 'LocationMedia' | 'WaterbodyMedia', ParentType, ContextType>;
 }>;
 
 export interface MultiLineStringScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['MultiLineString'], any> {
@@ -1316,6 +1350,7 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<QueryCatchesArgs>>;
   location?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<QueryLocationArgs, 'id'>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  media?: Resolver<Maybe<Array<Maybe<ResolversTypes['Media']>>>, ParentType, ContextType, RequireFields<QueryMediaArgs, 'id' | 'type'>>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'id'>>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<QueryUsersArgs>>;
   waterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, Partial<QueryWaterbodiesArgs>>;
@@ -1429,8 +1464,8 @@ export type WaterbodyMediaResolvers<ContextType = Context, ParentType extends Re
   created_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  waterbody?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1446,6 +1481,7 @@ export type WaterbodyReviewResolvers<ContextType = Context, ParentType extends R
 
 export type Resolvers<ContextType = Context> = ResolversObject<{
   AccountNumber?: GraphQLScalarType;
+  AnyMedia?: AnyMediaResolvers<ContextType>;
   BigInt?: GraphQLScalarType;
   Byte?: GraphQLScalarType;
   Catch?: CatchResolvers<ContextType>;

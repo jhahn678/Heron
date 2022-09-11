@@ -11,7 +11,7 @@ export interface IWaterbody {
     admin_two: string[]
 }
 
-export interface WaterbodyMedia {
+export interface IWaterbodyMedia {
     id: number,
     waterbody: number,
     user: number,

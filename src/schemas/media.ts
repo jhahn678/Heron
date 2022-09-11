@@ -1,35 +1,50 @@
 import { gql } from 'apollo-server-express'
+import { MediaType, Resolvers } from '../types/graphql'
+import knex from '../configs/knex'
 
 export const typeDef =  gql`
-    interface Media {
-        id: Int!,
-        user: Int!,
-        url: String!,
+
+    type Query {
+        media(id: Int!, type: MediaType!): [Media]
+    }
+
+    union Media = CatchMedia | WaterbodyMedia | LocationMedia | AnyMedia
+
+    enum MediaType {
+        CATCH
+        LOCATION
+        WATERBODY
+    }
+
+    type AnyMedia {
+        id: Int!
+        user: User
+        url: String!
         created_at: DateTime!
     }
 
-    type CatchMedia implements Media {
+    type CatchMedia {
         id: Int!
-        user: Int!
+        user: User
         url: String!
         created_at: DateTime!
-        catch: Int!
+        catch: Catch
     }
 
-    type LocationMedia implements Media {
+    type LocationMedia  {
         id: Int!
-        user: Int!
+        user: User
         url: String!
         created_at: DateTime!
-        location: Int!
+        location: Location
     }
 
-    type WaterbodyMedia implements Media {
+    type WaterbodyMedia {
         id: Int!
-        user: Int!
+        user: User
         url: String!
         created_at: DateTime!
-        waterbody: Int!
+        waterbody: Waterbody
     }
 
     input MediaInput {
@@ -39,20 +54,56 @@ export const typeDef =  gql`
 
 `
 
-export const resolver = {
+export const resolver: Resolvers = {
+    Query: {
+        media: async (_, { id, type }) => {
+            let table;
+            switch(type){
+                case MediaType.Catch:
+                    table = 'catchMedia'
+                case MediaType.Location:
+                    table = 'waterbodyMedia'
+                case MediaType.Waterbody:
+                    table = 'locationMedia'
+            }
+            return (await knex(table).where({ id }).first())
+        }
+    },
     Media: {
-        //@ts-ignore
-        __resolveType: (media) => {
-            if(media.catch){
-                return 'CatchMedia'
-            }
-            if(media.waterbody){
-                return 'WaterbodyMedia'
-            }
-            if(media.location){
-                return 'LocationMedia'
-            }
-            return 'Media';
+        __resolveType: (media: any) => {
+            if(media.catch) return 'CatchMedia'
+            if(media.location) return 'LocationMedia'
+            if(media.waterbody) return 'WaterbodyMedia'
+            return 'AnyMedia'
+        }
+    },
+    CatchMedia: {
+        catch: async ({ catch: catchId }) => {
+            return (await knex('catches').where('id', catchId).first())
+        },
+        user: async ({ user }) => {
+            return (await knex('users').where('id', user).first())
+        }
+    },
+    WaterbodyMedia: {
+        waterbody: async ({ waterbody }) => {
+            return (await knex('waterbodies').where('id', waterbody).first())
+        },
+        user: async ({ user }) => {
+            return (await knex('users').where('id', user).first())
+        }
+    },
+    LocationMedia: {
+        location: async ({ location }) => {
+            return (await knex('locations').where('id', location).first())
+        },  
+        user: async ({ user }) => {
+            return (await knex('users').where('id', user).first())
+        }
+    },
+    AnyMedia: {
+        user: async ({ user }) => {
+            return (await knex('users').where('id', user).first())
         }
     }
 }
