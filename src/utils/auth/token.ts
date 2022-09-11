@@ -4,6 +4,11 @@ import knex from '../../configs/knex'
 import { TokenExpiredError } from '../errors/ApolloTokenErrors'
 import { AuthError } from '../errors/AuthError'
 
+const TOKEN_ISSUER = 'Heron API'
+const TOKEN_ALGORITHM = 'HS256'
+const REFRESH_TOKEN_EXPIRES_IN = '180d' 
+const ACCESS_TOKEN_EXPIRES_IN = '60m'
+
 interface DecodedToken extends JwtPayload {
     /** UserID */
     id: number,
@@ -98,18 +103,17 @@ export const createTokenPair = (payload: TokenPayload): CreateTokenResult => {
 
     const refreshToken = sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
         jwtid: jwtid,
-        algorithm: 'HS256',
+        algorithm: TOKEN_ALGORITHM,
         audience: payload.id.toString(),
-        issuer: 'Heron API',
-        expiresIn: (60 * 60 * 24 * 180) //180 DAYS
+        issuer: TOKEN_ISSUER,
+        expiresIn: REFRESH_TOKEN_EXPIRES_IN,
     })
 
     const accessToken = sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
-        algorithm: 'HS256',
+        algorithm: TOKEN_ALGORITHM,
         audience: payload.id.toString(),
-        issuer: 'Heron API',
-        expiresIn: '1h' 
-        // expiresIn: 5
+        issuer: TOKEN_ISSUER,
+        expiresIn: ACCESS_TOKEN_EXPIRES_IN
     })
 
     return { refreshToken, accessToken, jwtid }
