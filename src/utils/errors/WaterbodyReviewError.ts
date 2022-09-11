@@ -1,16 +1,22 @@
-type ErrorType = 
-| 'INVALID_RATING'
+import { ApolloError } from 'apollo-server-errors';
 
-export class WaterbodyReviewError extends Error {
-    message: string = 'Could not create review'
-    status: number = 400
-    constructor(errorType: ErrorType){
-        super()
-        switch(errorType){
-            case 'INVALID_RATING':
-                this.message = 'Provided rating is invalid'
+type Message = 
+| 'Review from user already exists'
+| 'Invalid rating provided'
+
+export class WaterbodyReviewError extends ApolloError {
+    name: string
+    constructor(message: Message) {
+        super(message, 'WATERBODY_REVIEW_ERROR');
+        switch(message){
+            case 'Review from user already exists':
+                this.name = 'DuplicateReviewError'
+                break;
+            case 'Invalid rating provided':
+                this.name = 'InvalidRatingError';
                 break;
             default:
+                this.name = 'UnhandledWaterbodyError'
                 break;
         }
     }
