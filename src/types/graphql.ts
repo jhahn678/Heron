@@ -208,7 +208,6 @@ export type Catch = {
   geom?: Maybe<Scalars['Point']>;
   id: Scalars['Int'];
   length?: Maybe<Scalars['Float']>;
-  length_unit?: Maybe<LengthUnit>;
   media?: Maybe<Array<Maybe<CatchMedia>>>;
   rig?: Maybe<Scalars['String']>;
   species?: Maybe<Scalars['String']>;
@@ -217,16 +216,15 @@ export type Catch = {
   user: User;
   waterbody?: Maybe<Waterbody>;
   weight?: Maybe<Scalars['Float']>;
-  weight_unit?: Maybe<WeightUnit>;
 };
 
 export type CatchDetails = {
   description?: InputMaybe<Scalars['String']>;
-  length?: InputMaybe<LengthInput>;
+  length?: InputMaybe<Scalars['Float']>;
   rig?: InputMaybe<Scalars['String']>;
   species?: InputMaybe<Scalars['String']>;
   title?: InputMaybe<Scalars['String']>;
-  weight?: InputMaybe<WeightInput>;
+  weight?: InputMaybe<Scalars['Float']>;
 };
 
 export type CatchMedia = {
@@ -237,6 +235,13 @@ export type CatchMedia = {
   url: Scalars['String'];
   user?: Maybe<User>;
 };
+
+export enum CatchSort {
+  CreatedAtNewest = 'CREATED_AT_NEWEST',
+  CreatedAtOldest = 'CREATED_AT_OLDEST',
+  LengthLargest = 'LENGTH_LARGEST',
+  WeightLargest = 'WEIGHT_LARGEST'
+}
 
 export enum ClassificationEnum {
   Bay = 'bay',
@@ -250,16 +255,6 @@ export enum ClassificationEnum {
   River = 'river',
   Strait = 'strait',
   Stream = 'stream'
-}
-
-export type LengthInput = {
-  unit: LengthUnit;
-  value: Scalars['Float'];
-};
-
-export enum LengthUnit {
-  Cm = 'CM',
-  In = 'IN'
 }
 
 export type Location = {
@@ -471,13 +466,13 @@ export type MutationUpdateUserDetailsArgs = {
 export type NewCatch = {
   coordinates?: InputMaybe<Array<InputMaybe<Scalars['Float']>>>;
   description?: InputMaybe<Scalars['String']>;
-  length?: InputMaybe<LengthInput>;
+  length?: InputMaybe<Scalars['Float']>;
   media?: InputMaybe<Array<MediaInput>>;
   rig?: InputMaybe<Scalars['String']>;
   species?: InputMaybe<Scalars['String']>;
   title?: InputMaybe<Scalars['String']>;
   waterbody?: InputMaybe<Scalars['Int']>;
-  weight?: InputMaybe<WeightInput>;
+  weight?: InputMaybe<Scalars['Float']>;
 };
 
 export type NewLocationPoint = {
@@ -663,6 +658,7 @@ export type Waterbody = {
   id: Scalars['Int'];
   locations?: Maybe<Array<Maybe<Location>>>;
   media?: Maybe<Array<Maybe<WaterbodyMedia>>>;
+  most_caught_species?: Maybe<Scalars['String']>;
   name?: Maybe<Scalars['String']>;
   rank?: Maybe<Scalars['Float']>;
   reviews?: Maybe<Array<Maybe<WaterbodyReview>>>;
@@ -671,12 +667,14 @@ export type Waterbody = {
   total_locations?: Maybe<Scalars['Int']>;
   total_media?: Maybe<Scalars['Int']>;
   total_reviews?: Maybe<Scalars['Int']>;
+  total_species?: Maybe<Scalars['Int']>;
 };
 
 
 export type WaterbodyCatchesArgs = {
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
+  sort?: InputMaybe<CatchSort>;
 };
 
 
@@ -716,18 +714,6 @@ export type WaterbodyReview = {
   user?: Maybe<User>;
   waterbody?: Maybe<Waterbody>;
 };
-
-export type WeightInput = {
-  unit: WeightUnit;
-  value: Scalars['Float'];
-};
-
-export enum WeightUnit {
-  G = 'G',
-  Kg = 'KG',
-  Lb = 'LB',
-  Oz = 'OZ'
-}
 
 export type PointUpdate = {
   coordinates: Array<Scalars['Float']>;
@@ -818,6 +804,7 @@ export type ResolversTypes = ResolversObject<{
   Catch: ResolverTypeWrapper<ICatch>;
   CatchDetails: CatchDetails;
   CatchMedia: ResolverTypeWrapper<ICatchMedia>;
+  CatchSort: CatchSort;
   ClassificationEnum: ClassificationEnum;
   CountryCode: ResolverTypeWrapper<Scalars['CountryCode']>;
   Cuid: ResolverTypeWrapper<Scalars['Cuid']>;
@@ -846,8 +833,6 @@ export type ResolversTypes = ResolversObject<{
   JSONObject: ResolverTypeWrapper<Scalars['JSONObject']>;
   JWT: ResolverTypeWrapper<Scalars['JWT']>;
   Latitude: ResolverTypeWrapper<Scalars['Latitude']>;
-  LengthInput: LengthInput;
-  LengthUnit: LengthUnit;
   LineString: ResolverTypeWrapper<Scalars['LineString']>;
   LocalDate: ResolverTypeWrapper<Scalars['LocalDate']>;
   LocalEndTime: ResolverTypeWrapper<Scalars['LocalEndTime']>;
@@ -912,8 +897,6 @@ export type ResolversTypes = ResolversObject<{
   Waterbody: ResolverTypeWrapper<IWaterbody>;
   WaterbodyMedia: ResolverTypeWrapper<IWaterbodyMedia>;
   WaterbodyReview: ResolverTypeWrapper<IWaterbodyReview>;
-  WeightInput: WeightInput;
-  WeightUnit: WeightUnit;
   pointUpdate: PointUpdate;
   polygonUpdate: PolygonUpdate;
 }>;
@@ -955,7 +938,6 @@ export type ResolversParentTypes = ResolversObject<{
   JSONObject: Scalars['JSONObject'];
   JWT: Scalars['JWT'];
   Latitude: Scalars['Latitude'];
-  LengthInput: LengthInput;
   LineString: Scalars['LineString'];
   LocalDate: Scalars['LocalDate'];
   LocalEndTime: Scalars['LocalEndTime'];
@@ -1016,7 +998,6 @@ export type ResolversParentTypes = ResolversObject<{
   Waterbody: IWaterbody;
   WaterbodyMedia: IWaterbodyMedia;
   WaterbodyReview: IWaterbodyReview;
-  WeightInput: WeightInput;
   pointUpdate: PointUpdate;
   polygonUpdate: PolygonUpdate;
 }>;
@@ -1066,7 +1047,6 @@ export type CatchResolvers<ContextType = Context, ParentType extends ResolversPa
   geom?: Resolver<Maybe<ResolversTypes['Point']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   length?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  length_unit?: Resolver<Maybe<ResolversTypes['LengthUnit']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['CatchMedia']>>>, ParentType, ContextType>;
   rig?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   species?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1075,7 +1055,6 @@ export type CatchResolvers<ContextType = Context, ParentType extends ResolversPa
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType>;
   weight?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  weight_unit?: Resolver<Maybe<ResolversTypes['WeightUnit']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1449,6 +1428,7 @@ export type WaterbodyResolvers<ContextType = Context, ParentType extends Resolve
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType, Partial<WaterbodyLocationsArgs>>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType, Partial<WaterbodyMediaArgs>>;
+  most_caught_species?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rank?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   reviews?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyReview']>>>, ParentType, ContextType, Partial<WaterbodyReviewsArgs>>;
@@ -1457,6 +1437,7 @@ export type WaterbodyResolvers<ContextType = Context, ParentType extends Resolve
   total_locations?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   total_media?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   total_reviews?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  total_species?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

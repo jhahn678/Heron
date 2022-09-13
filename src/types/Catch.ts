@@ -11,9 +11,7 @@ export interface ICatch {
     description: string,
     species: string,
     length: number,
-    length_unit: 'IN' | 'CM',
     weight: number,
-    weight_unit:  'LB' | 'KG' | 'OZ' | 'G'
     rig: string,
     created_at: Date,
     updated_at: Date
@@ -37,9 +35,7 @@ export interface NewCatchBuilder {
     description?: string,
     species?: string
     weight?: number,
-    weight_unit?:  'LB' | 'KG' | 'OZ' | 'G'
     length?: number,
-    length_unit?: 'IN' | 'CM',
     rig?: string
 }
 

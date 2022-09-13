@@ -23,25 +23,18 @@ export const typeDef =  gql`
         description: String,
         species: String,
         length: Float,
-        length_unit: LengthUnit
         weight: Float,
-        weight_unit: WeightUnit,
         rig: String,
         media: [CatchMedia]
         created_at: DateTime,
         updated_at: DateTime
     }
 
-    enum LengthUnit{
-        IN
-        CM
-    }
-    
-    enum WeightUnit {
-        LB
-        OZ
-        KG
-        G
+    enum CatchSort{
+        CREATED_AT_NEWEST
+        CREATED_AT_OLDEST
+        LENGTH_LARGEST
+        WEIGHT_LARGEST
     }
 
     type Point {
@@ -69,28 +62,18 @@ export const typeDef =  gql`
         title: String,          @constraint(maxLength: 100)
         description: String,    @constraint(maxLength: 255)
         species: String         @constraint(maxLength: 100)
-        weight: WeightInput
-        length: LengthInput
+        weight: Float
+        length: Float
         rig: String             @constraint(maxLength: 255)
         media: [MediaInput!]
-    }
-
-    input LengthInput {
-        value: Float!,
-        unit: LengthUnit!
-    }
-
-    input WeightInput {
-        value: Float!,
-        unit: WeightUnit!
     }
 
     input CatchDetails {
         title: String,          @constraint(maxLength: 100)
         description: String,    @constraint(maxLength: 255)
         species: String,        @constraint(maxLength: 100)
-        weight: WeightInput,
-        length: LengthInput,
+        weight: Float,
+        length: Float,
         rig: String             @constraint(maxLength: 255)
     }
 
@@ -126,14 +109,8 @@ export const resolver: Resolvers = {
             if(description) catchObj['description'] = description;
             if(species) catchObj['species'] = species;
             if(rig) catchObj['rig'] = rig;
-            if(weight) {
-                catchObj['weight'] = weight.value;
-                catchObj['weight_unit'] = weight.unit;
-            }
-            if(length){
-                catchObj['length'] = length.value;
-                catchObj['length_unit'] = length.unit;
-            }
+            if(weight) catchObj['weight'] = weight;
+            if(length) catchObj['length'] = length;
             if(coordinates && validatePointCoordinates(coordinates)){
                 const [lng, lat] = coordinates;
                 catchObj['geom'] = st.setSRID(st.point(lng!, lat!), 4326)
@@ -154,14 +131,8 @@ export const resolver: Resolvers = {
             const { weight, length, ...rest } = details;
             const update: CatchUpdateBuilder = {};
 
-            if(weight){
-                update['weight'] = weight.value;
-                update['weight_unit'] = weight.unit;
-            }
-            if(length){
-                update['length'] = length.value;
-                update['length_unit'] = length.unit;
-            }
+            if(weight) update['weight'] = weight
+            if(length) update['length'] = length;
 
             if(Object.keys(rest).length > 0) Object.assign(update, rest)
             if(Object.keys(update).length === 0) throw new RequestError('REQUEST_UNDEFINED')
@@ -234,10 +205,10 @@ export const resolver: Resolvers = {
             const result = await knex('waterbodies').where({ id }).first()
             return result;
         },
-        // media: async ({ id }) => {
-        //     const result = await knex('catchMedia').where({ catch: id })
-        //     return result;
-        // }
+        media: async ({ id }) => {
+            const result = await knex('catchMedia').where({ catch: id })
+            return result;
+        }
     }
 }
 
