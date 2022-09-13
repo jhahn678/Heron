@@ -1,6 +1,6 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
-import { Resolvers, ReviewSort, Sort, Waterbody } from '../types/graphql'
+import { CatchSort, Resolvers, ReviewSort, Sort, Waterbody } from '../types/graphql'
 import { IWaterbody, IWaterbodyReview } from '../types/Waterbody'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
@@ -17,8 +17,10 @@ export const typeDef =  gql`
         ccode: String
         subregion: String
         geometries: Geometry
-        catches(offset: Int, limit: Int): [Catch]
+        catches(offset: Int, limit: Int, sort: CatchSort): [Catch]
         total_catches: Int
+        total_species: Int
+        most_caught_species: String
         locations(offset: Int, limit: Int): [Location]
         total_locations: Int
         media(offset: Int, limit: Int): [WaterbodyMedia]
@@ -110,16 +112,16 @@ export const resolver: Resolvers = {
             
             return inserted[0].waterbody
         },
-        // addWaterbodyMedia: async (_, { id, media }, { auth }) => {
-        //     if(!auth) throw new AuthenticationError('Authentication Required')
+        addWaterbodyMedia: async (_, { id, media }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
 
-        //     const valid = media.filter(x => validateMediaUrl(x.url))
-        //     const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
-        //     if(uploads.length === 0) throw new UploadError('INVALID_URL')
+            const valid = media.filter(x => validateMediaUrl(x.url))
+            const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
+            if(uploads.length === 0) throw new UploadError('INVALID_URL')
             
-        //     const res = await knex('waterbodyMedia').insert(uploads).returning('*')
-        //     return res;
-        // },
+            const res = await knex('waterbodyMedia').insert(uploads).returning('*')
+            return res;
+        },
     },
     Waterbody: {
         geometries: async ({ id: waterbody }) => {
@@ -130,10 +132,26 @@ export const resolver: Resolvers = {
                 .first()
             if(result) return result.geometries;
         },
-        catches: async ({ id }, { offset, limit }) => {
+        catches: async ({ id }, { offset, limit, sort }) => {
+            let sortField = 'created_at'
+            let sortMethod = 'desc';
+            switch(sort){
+                case CatchSort.LengthLargest:
+                    sortField = 'length'; 
+                    sortMethod = 'desc'; break;
+                case CatchSort.WeightLargest:
+                    sortField = 'weight'; 
+                    sortMethod = 'desc'; break;
+                case CatchSort.CreatedAtOldest:
+                    sortField = 'created_at';
+                    sortMethod = 'asc'; break;
+                case CatchSort.CreatedAtNewest:
+                    sortField = 'created_at';
+                    sortMethod = 'desc'; break;
+            }
             const catches = await knex('catches')
                 .where({ waterbody: id })
-                .orderBy('created_at', 'desc')
+                .orderBy(sortField, sortMethod)
                 .offset(offset || 0)
                 .limit(limit || 4)
             return catches;
@@ -143,6 +161,24 @@ export const resolver: Resolvers = {
             const { count } = result[0]
             if(typeof count !== 'number') return parseInt(count)
             return count
+        },
+        total_species: async ({ id }) => {
+            const result = await knex('catches')
+                .where({ waterbody: id })
+                .countDistinct('species')
+            const { count } = result[0]
+            if(typeof count !== 'number') return parseInt(count)
+            return count
+        },
+        most_caught_species: async ({ id }) => {
+            const result = knex('catches')
+                .select('species')
+                .where({ waterbody: id })
+                .groupBy('species')
+                .orderByRaw('count(*) desc')
+            const res = await result;
+            if(res.length === 0) return null;
+            return res[0].species;
         },
         locations: async ({ id }, { offset, limit }) => {
             const locations = await knex('locations')
@@ -178,16 +214,16 @@ export const resolver: Resolvers = {
             switch(sort){
                 case ReviewSort.CreatedAtNewest:
                     sortField = 'created_at';
-                    sortOrder = 'desc';
+                    sortOrder = 'desc'; break;
                 case ReviewSort.RatingHighest:
                     sortField = 'rating';
-                    sortOrder = 'asc';
+                    sortOrder = 'asc'; break;
                 case ReviewSort.RatingLowest:
                     sortField = 'rating';
-                    sortOrder = 'asc';
+                    sortOrder = 'asc'; break;
                 case ReviewSort.CreatedAtOldest:
                     sortField = 'created_at';
-                    sortOrder = 'asc';
+                    sortOrder = 'asc'; break;
             }
             const results = await knex('waterbodyReviews')
                 .where({ waterbody: id })
