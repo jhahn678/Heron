@@ -1,6 +1,6 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
-import { Resolvers } from '../types/graphql'
+import { Resolvers, Privacy, LocationQuery, LocationSort } from '../types/graphql'
 import { AuthError } from '../utils/errors/AuthError'
 import { UploadError } from '../utils/errors/UploadError'
 import { RequestError } from '../utils/errors/RequestError'
@@ -11,11 +11,13 @@ import S3Client from '../configs/s3'
 import { DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 const { S3_BUCKET_NAME } = process.env;
 import * as turf from '@turf/helpers'
+import { LocationQueryError } from '../utils/errors/LocationQueryError'
 
 export const typeDef =  gql`
 
     type Location {
         id: Int!,
+        privacy: Privacy!
         title: String,
         description: String,
         user: User!
@@ -26,6 +28,7 @@ export const typeDef =  gql`
 
     type Query {
         location(id: Int!): Location
+        locations(type: LocationQuery!, id: Int, queryLocation: QueryLocation, limit: Int, offset: Int, sort: LocationSort): [Location]
     }
 
     type Mutation {
@@ -39,8 +42,26 @@ export const typeDef =  gql`
         deleteLocation(id: Int!): Location
     }
 
+    enum Privacy {
+        public
+        private
+        friends
+    }
+
+    enum LocationQuery {
+        USER
+        WATERBODY
+    }
+
+    enum LocationSort {
+        CREATED_AT_NEWEST
+        CREATED_AT_OLDEST
+        NEAREST
+    }
+
     input NewLocationPoint {
         title: String
+        privacy: Privacy!
         description: String
         waterbody: Int!
         media: [MediaInput!]
@@ -50,6 +71,7 @@ export const typeDef =  gql`
 
     input NewLocationPolygon {
         title: String
+        privacy: Privacy!
         description: String
         waterbody: Int!
         media: [MediaInput!]
@@ -77,19 +99,95 @@ export const typeDef =  gql`
 export const resolver: Resolvers = {
     Query: {
         location: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            const location = await knex('locations').where({ id, user: auth })
-            return location[0];
+            const query = knex('locations')
+                .where('id', id)
+                .andWhere('privacy', '=', Privacy.Public)
+            if(auth){
+                query.orWhere('user', auth)
+                query.orWhereRaw(`
+                    privacy = 'friends'
+                    and "user" in (
+                        select user_one as "user" from contacts
+                        where "user_two" = ?
+                        union all 
+                        select user_two as "user" from contacts
+                        where "user_one" = ?
+                    )
+                `,[auth, auth])
+            }
+            const location = await query.first()
+            return location;
+        },
+        locations: async (_, { id, type, queryLocation, limit, offset, sort }, { auth }) => {
+            if(!id) throw new LocationQueryError('ID_NOT_PROVIDED')
+            const query = knex('locations')
+            switch(type){
+                case LocationQuery.User:
+                    query.where('user', id)
+                    query.andWhere('privacy', Privacy.Public)
+                    if(auth){
+                        query.orWhereRaw(`
+                            privacy = 'friends'
+                            and "user" in (
+                                select user_one as "user" from contacts
+                                where "user_two" = ?
+                                union all 
+                                select user_two as "user" from contacts
+                                where "user_one" = ?
+                            )
+                        `, [auth])
+                    }
+                    break;
+                case LocationQuery.Waterbody:
+                    query.where('waterbody', id)
+                    query.andWhere('privacy', Privacy.Public)
+                    if(auth){
+                        //The right way to do this may be to not show friend-only
+                        //locations via the waterbody page
+                        query.orWhereRaw(`
+                            privacy = 'friends'
+                            and "user" in (
+                                select user_one as "user" from contacts
+                                where "user_two" = ?
+                                union all 
+                                select user_two as "user" from contacts
+                                where "user_one" = ?
+                            )
+                        `, [auth])
+                    }
+                    break
+            }
+            switch (sort){
+                case LocationSort.CreatedAtNewest:
+                    query.orderBy('created_at', 'desc')
+                    break;
+                case LocationSort.CreatedAtOldest:
+                    query.orderBy('created_at', 'asc')
+                    break;
+                case LocationSort.Nearest:
+                    if(!queryLocation) throw new LocationQueryError('QUERY_LOCATION_NOT_PROVIDED')
+                    const { latitude, longitude } = queryLocation;
+                    const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
+                    query.orderByRaw('geom <-> ?', [point])
+                    break;
+                default:
+                    query.orderBy('created_at', 'desc')
+                    break;
+            }
+            query.offset(offset || 0)
+            query.limit(limit || 20)
+            const results = await query;
+            return results;
         }
     },
     Mutation: {
-        ///Convert to transaction
+        // Convert to transaction
         createLocationPoint: async (_, { location  }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const { coordinates, waterbody, media, title, description, hexcolor } = location;
+            const { privacy, coordinates, waterbody, media, title, description, hexcolor } = location;
 
-            const newLocation: NewLocationObj = { user: auth, waterbody };
+            const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
 
             if(title) newLocation['title'] = title
             if(description) newLocation['description'] = description;
@@ -111,13 +209,13 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
-        ///Convert to transaction
+        // Convert to transaction
         createLocationPolygon: async (_, { location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const { coordinates, waterbody, media, title, description, hexcolor } = location;
+            const { privacy, coordinates, waterbody, media, title, description, hexcolor } = location;
 
-            const newLocation: NewLocationObj = { user: auth, waterbody };
+            const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
 
             if(title) newLocation['title'] = title
             if(description) newLocation['description'] = description;
@@ -244,10 +342,10 @@ export const resolver: Resolvers = {
             const result = await knex('waterbodies').where({ id }).first()
             return result;
         },
-        // media: async ({ id }) => {
-        //     if(id)
-        //     return (await knex('locationMedia').where({ location: id }))
-        // }
+        media: async ({ id }) => {
+            if(id)
+            return (await knex('locationMedia').where({ location: id }))
+        }
     }
 }
 
