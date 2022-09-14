@@ -1,8 +1,10 @@
 import { Point, Polygon, LineString } from "geojson"
 import { Knex } from "knex"
+import { Privacy } from "./graphql"
 
 export interface ILocation {
     id: number,
+    privacy: Privacy
     user: number,
     waterbody: number,
     title: string,
@@ -23,6 +25,7 @@ export interface ILocationMedia {
 export interface NewLocationObj {
     user: number,
     waterbody: number,
+    privacy: Privacy
     title?: string,
     description?: string,
     geom?: Knex.Raw,
