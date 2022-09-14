@@ -60,11 +60,14 @@ export const resolver: Resolvers = {
             let table;
             switch(type){
                 case MediaType.Catch:
-                    table = 'catchMedia'
+                    table = 'catchMedia';
+                    break;
                 case MediaType.Location:
-                    table = 'waterbodyMedia'
+                    table = 'waterbodyMedia';
+                    break;
                 case MediaType.Waterbody:
                     table = 'locationMedia'
+                    break;
             }
             return (await knex(table).where({ id }).first())
         }
