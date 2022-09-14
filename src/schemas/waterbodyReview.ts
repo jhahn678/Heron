@@ -45,16 +45,16 @@ export const resolver: Resolvers = {
             switch(sort){
                 case ReviewSort.CreatedAtNewest:
                     sortField = 'created_at';
-                    sortOrder = 'desc';
+                    sortOrder = 'desc'; break;
                 case ReviewSort.RatingHighest:
                     sortField = 'rating';
-                    sortOrder = 'asc';
+                    sortOrder = 'asc'; break;
                 case ReviewSort.RatingLowest:
                     sortField = 'rating';
-                    sortOrder = 'asc';
+                    sortOrder = 'asc'; break;
                 case ReviewSort.CreatedAtOldest:
                     sortField = 'created_at';
-                    sortOrder = 'asc';
+                    sortOrder = 'asc'; break;
             }
             const results = await knex('waterbodyReviews')
                 .where({ waterbody: id })

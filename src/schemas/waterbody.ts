@@ -1,7 +1,7 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
-import { CatchSort, Resolvers, ReviewSort, Sort, Waterbody } from '../types/graphql'
-import { IWaterbody, IWaterbodyReview } from '../types/Waterbody'
+import { CatchSort, Resolvers, ReviewSort, Sort } from '../types/graphql'
+import { IWaterbodyReview } from '../types/Waterbody'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
@@ -20,6 +20,7 @@ export const typeDef =  gql`
         catches(offset: Int, limit: Int, sort: CatchSort): [Catch]
         total_catches: Int
         total_species: Int
+        all_species: [SpeciesCount]
         most_caught_species: String
         locations(offset: Int, limit: Int): [Location]
         total_locations: Int
@@ -30,6 +31,11 @@ export const typeDef =  gql`
         average_rating: Float
         distance: Float
         rank: Float
+    }
+
+    type SpeciesCount {
+        species: String
+        count: Int
     }
 
     type Query {
@@ -169,6 +175,14 @@ export const resolver: Resolvers = {
             const { count } = result[0]
             if(typeof count !== 'number') return parseInt(count)
             return count
+        },
+        all_species: async ({ id }) => {
+            const result = await knex('catches')
+                .where({ waterbody: id })
+                .select('species', knex.raw('count(species)'))
+                .groupBy('species')
+                .orderByRaw('count desc')
+            return result;
         },
         most_caught_species: async ({ id }) => {
             const result = knex('catches')
