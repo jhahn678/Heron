@@ -137,7 +137,7 @@ export const resolver: Resolvers = {
                                 select user_two as "user" from contacts
                                 where "user_one" = ?
                             )
-                        `, [auth])
+                        `, [auth, auth])
                     }
                     break;
                 case LocationQuery.Waterbody:
@@ -155,7 +155,7 @@ export const resolver: Resolvers = {
                                 select user_two as "user" from contacts
                                 where "user_one" = ?
                             )
-                        `, [auth])
+                        `, [auth, auth])
                     }
                     break
             }
