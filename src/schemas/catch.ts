@@ -93,6 +93,7 @@ export const resolver: Resolvers = {
                 .first()
             return res;
         },
+        //needs tested
         catches: async (_, { id, type, offset, limit, queryLocation, sort }) => {
             const query = knex('catches')
             switch(type){
@@ -133,6 +134,7 @@ export const resolver: Resolvers = {
         }
     },
     Mutation: {
+        // needs tested
         createCatch: async (_, { newCatch }, { auth }) => {
             const { 
                 coordinates, description, waterbody, 
@@ -163,6 +165,7 @@ export const resolver: Resolvers = {
             
             return res[0]
         },
+        // needs tested
         updateCatchDetails: async (_, { id, details }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -180,6 +183,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         updateCatchLocation: async (_, { id, coords }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
             if(!coords || !validatePointCoordinates(coords)) {
@@ -194,6 +198,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         addCatchMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -206,6 +211,7 @@ export const resolver: Resolvers = {
 
             return res;
         },
+        // needs tested
         removeCatchMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -218,6 +224,7 @@ export const resolver: Resolvers = {
             }))
             return res[0];
         },
+        // needs tested
         deleteCatch: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 

@@ -98,6 +98,7 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
+        //needs tested
         location: async (_, { id }, { auth }) => {
             const query = knex('locations')
                 .where('id', id)
@@ -118,6 +119,7 @@ export const resolver: Resolvers = {
             const location = await query.first()
             return location;
         },
+        //needs tested
         locations: async (_, { id, type, queryLocation, limit, offset, sort }, { auth }) => {
             if(!id) throw new LocationQueryError('ID_NOT_PROVIDED')
             const query = knex('locations')
@@ -181,6 +183,7 @@ export const resolver: Resolvers = {
         }
     },
     Mutation: {
+        // needs tested
         // Convert to transaction
         createLocationPoint: async (_, { location  }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
@@ -209,6 +212,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         // Convert to transaction
         createLocationPolygon: async (_, { location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
@@ -239,6 +243,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         updateLocationDetails: async (_, { id, details }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -254,6 +259,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         updateGeojsonPoint: async (_, { id, point }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -274,6 +280,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         updateGeojsonPolygon: async (_, { id, polygon }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -294,6 +301,7 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
+        // needs tested
         addLocationMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -305,6 +313,7 @@ export const resolver: Resolvers = {
             if(res.length === 0) throw new RequestError('REQUEST_FAILED')
             return res;
         },
+        // needs tested
         removeLocationMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
 
@@ -317,6 +326,7 @@ export const resolver: Resolvers = {
             }))
             return res[0];
         },
+        // needs tested
         deleteLocation: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
