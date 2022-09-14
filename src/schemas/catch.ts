@@ -1,8 +1,7 @@
 import { gql } from 'apollo-server-express'
 import { AuthenticationError} from 'apollo-server-core'
-import { Resolvers } from '../types/graphql'
+import { CatchQuery, CatchSort, Resolvers } from '../types/graphql'
 import knex, { st } from '../configs/knex'
-import { AuthError } from '../utils/errors/AuthError'
 import { validatePointCoordinates } from '../utils/validations/coordinates'
 import { NewCatchBuilder, CatchUpdateBuilder } from '../types/Catch'
 import { RequestError } from '../utils/errors/RequestError'
@@ -10,6 +9,7 @@ import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 import { UploadError } from '../utils/errors/UploadError'
 import S3Client from '../configs/s3'
 import { DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
+import { CatchQueryError } from '../utils/errors/CatchQueryError'
 const { S3_BUCKET_NAME } = process.env;
 
 export const typeDef =  gql`
@@ -25,7 +25,7 @@ export const typeDef =  gql`
         length: Float,
         weight: Float,
         rig: String,
-        media: [CatchMedia]
+        media(limit: Int): [CatchMedia]
         created_at: DateTime,
         updated_at: DateTime
     }
@@ -44,7 +44,7 @@ export const typeDef =  gql`
 
     type Query {
         catch(id: Int!): Catch
-        catches(ids: [Int]): [Catch]
+        catches(type: CatchQuery!, id: Int, queryLocation: QueryLocation, offset: Int, limit: Int, sort: CatchSort): [Catch]
     }
 
     type Mutation {
@@ -54,6 +54,12 @@ export const typeDef =  gql`
         addCatchMedia(id: Int!, media: [MediaInput!]!): [CatchMedia]
         removeCatchMedia(id: Int!): CatchMedia
         deleteCatch(id: Int!): Catch
+    }
+
+    enum CatchQuery {
+        USER
+        WATERBODY
+        COORDINATES
     }
 
     input NewCatch {
@@ -76,22 +82,54 @@ export const typeDef =  gql`
         length: Float,
         rig: String             @constraint(maxLength: 255)
     }
-
-
-
 `
 
 export const resolver: Resolvers = {
     Query: {
         catch: async (_, { id }) => {
-            const res = await knex('catches').where({ id })
-            return res[0];
+            const res = await knex('catches')
+                .select('*', knex.raw('st_asgeojson(st_transform(geom, 4326)) as geom'))
+                .where({ id })
+                .first()
+            return res;
         },
-        catches: async (_, { ids }) => {
-            if(ids && ids.length > 0){//@ts-ignore -- not inferred from if check    
-                return (await knex('catches').whereIn('id', ids))     
+        catches: async (_, { id, type, offset, limit, queryLocation, sort }) => {
+            const query = knex('catches')
+            switch(type){
+                case CatchQuery.User:
+                    if(!id) throw new CatchQueryError('ID_NOT_PROVIDED');
+                    query.where('user', id); 
+                    break;
+                case CatchQuery.Waterbody:
+                    if(!id) throw new CatchQueryError('ID_NOT_PROVIDED');
+                    query.where('waterbody', id); 
+                    break;
+                case CatchQuery.Coordinates:
+                    if(!queryLocation) throw new CatchQueryError('QUERY_LOCATION_NOT_PROVIDED')
+                    const { latitude, longitude, withinMeters=100000 } = queryLocation;
+                    const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
+                    query.where(st.dwithin('geom', point, withinMeters, false))
             }
-            return (await knex('catches'))
+            switch(sort){
+                case(CatchSort.CreatedAtNewest):
+                    query.orderBy('created_at', 'desc')
+                    break;
+                case(CatchSort.CreatedAtOldest):
+                    query.orderBy('created_at', 'asc')
+                    break;
+                case(CatchSort.LengthLargest):
+                    query.orderBy('length', 'desc')
+                    break;
+                case(CatchSort.WeightLargest):
+                    query.orderBy('weight', 'desc')
+                    break;
+                default:
+                    query.orderBy('created_at', 'desc')
+            }
+            query.offset(offset || 0)
+            query.limit(limit || 20)
+            const result = await query;
+            return result;
         }
     },
     Mutation: {
@@ -205,8 +243,10 @@ export const resolver: Resolvers = {
             const result = await knex('waterbodies').where({ id }).first()
             return result;
         },
-        media: async ({ id }) => {
-            const result = await knex('catchMedia').where({ catch: id })
+        media: async ({ id }, { limit }) => {
+            const result = await knex('catchMedia')
+                .where({ catch: id })
+                .limit(limit || 20)
             return result;
         }
     }
