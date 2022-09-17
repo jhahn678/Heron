@@ -2,8 +2,8 @@ require('dotenv').config()
 import Knex from "knex";
 import KnexPostgis from "knex-postgis"; 
 import { IUser, UserAvatar, IContact, IPendingContact } from "../types/User";
-import { ICatch, ICatchMedia } from "../types/Catch";
-import { ILocation, ILocationMedia } from "../types/Location";
+import { ICatch, ICatchFavorite, ICatchMedia } from "../types/Catch";
+import { ILocation, ILocationFavorite, ILocationMedia } from "../types/Location";
 import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyMedia, IWaterbodyReview } from "../types/Waterbody";
 import { IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
@@ -28,8 +28,10 @@ declare module 'knex/types/tables' {
         pendingContacts: IPendingContact,
         catches: ICatch,
         catchMedia: ICatchMedia,
+        catchFavorites: ICatchFavorite
         locations: ILocation,
         locationMedia: ILocationMedia,
+        locationFavorites: ILocationFavorite,
         waterbodies: IWaterbody,
         waterbodyMedia: IWaterbodyMedia,
         waterbodyReviews: IWaterbodyReview

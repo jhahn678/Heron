@@ -207,11 +207,13 @@ export type Catch = {
   description?: Maybe<Scalars['String']>;
   geom?: Maybe<Scalars['Point']>;
   id: Scalars['Int'];
+  is_favorited?: Maybe<Scalars['Boolean']>;
   length?: Maybe<Scalars['Float']>;
   media?: Maybe<Array<Maybe<CatchMedia>>>;
   rig?: Maybe<Scalars['String']>;
   species?: Maybe<Scalars['String']>;
   title?: Maybe<Scalars['String']>;
+  total_favorites?: Maybe<Scalars['Int']>;
   updated_at?: Maybe<Scalars['DateTime']>;
   user: User;
   waterbody?: Maybe<Waterbody>;
@@ -280,10 +282,12 @@ export type Location = {
   geom?: Maybe<Scalars['Geometry']>;
   hexcolor?: Maybe<Scalars['String']>;
   id: Scalars['Int'];
+  is_favorited?: Maybe<Scalars['Boolean']>;
   media?: Maybe<Array<Maybe<LocationMedia>>>;
   nearest_geoplace?: Maybe<Scalars['String']>;
   privacy: Privacy;
   title?: Maybe<Scalars['String']>;
+  total_favorites?: Maybe<Scalars['Int']>;
   user: User;
   waterbody?: Maybe<Waterbody>;
 };
@@ -346,7 +350,9 @@ export type Mutation = {
   rejectPendingContact?: Maybe<PendingContact>;
   removeCatchMedia?: Maybe<CatchMedia>;
   removeLocationMedia?: Maybe<LocationMedia>;
-  toggleSaveWaterbody?: Maybe<Scalars['Int']>;
+  toggleFavoriteCatch?: Maybe<Scalars['Boolean']>;
+  toggleFavoriteLocation?: Maybe<Scalars['Boolean']>;
+  toggleSaveWaterbody?: Maybe<Scalars['Boolean']>;
   updateCatchDetails?: Maybe<Catch>;
   updateCatchLocation?: Maybe<Catch>;
   updateGeojsonPoint?: Maybe<Location>;
@@ -446,6 +452,16 @@ export type MutationRemoveCatchMediaArgs = {
 
 
 export type MutationRemoveLocationMediaArgs = {
+  id: Scalars['Int'];
+};
+
+
+export type MutationToggleFavoriteCatchArgs = {
+  id: Scalars['Int'];
+};
+
+
+export type MutationToggleFavoriteLocationArgs = {
   id: Scalars['Int'];
 };
 
@@ -718,6 +734,7 @@ export type Waterbody = {
   distance?: Maybe<Scalars['Float']>;
   geometries?: Maybe<Scalars['Geometry']>;
   id: Scalars['Int'];
+  is_saved?: Maybe<Scalars['Boolean']>;
   locations?: Maybe<Array<Maybe<Location>>>;
   media?: Maybe<Array<Maybe<WaterbodyMedia>>>;
   most_caught_species?: Maybe<Scalars['String']>;
@@ -1116,11 +1133,13 @@ export type CatchResolvers<ContextType = Context, ParentType extends ResolversPa
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   geom?: Resolver<Maybe<ResolversTypes['Point']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  is_favorited?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   length?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['CatchMedia']>>>, ParentType, ContextType, Partial<CatchMediaArgs>>;
   rig?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   species?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  total_favorites?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   updated_at?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType>;
@@ -1259,10 +1278,12 @@ export type LocationResolvers<ContextType = Context, ParentType extends Resolver
   geom?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
   hexcolor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  is_favorited?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
   nearest_geoplace?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   privacy?: Resolver<ResolversTypes['Privacy'], ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  total_favorites?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1320,7 +1341,9 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   rejectPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationRejectPendingContactArgs, 'id'>>;
   removeCatchMedia?: Resolver<Maybe<ResolversTypes['CatchMedia']>, ParentType, ContextType, RequireFields<MutationRemoveCatchMediaArgs, 'id'>>;
   removeLocationMedia?: Resolver<Maybe<ResolversTypes['LocationMedia']>, ParentType, ContextType, RequireFields<MutationRemoveLocationMediaArgs, 'id'>>;
-  toggleSaveWaterbody?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationToggleSaveWaterbodyArgs, 'id'>>;
+  toggleFavoriteCatch?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleFavoriteCatchArgs, 'id'>>;
+  toggleFavoriteLocation?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleFavoriteLocationArgs, 'id'>>;
+  toggleSaveWaterbody?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveWaterbodyArgs, 'id'>>;
   updateCatchDetails?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchDetailsArgs, 'details' | 'id'>>;
   updateCatchLocation?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchLocationArgs, 'coords' | 'id'>>;
   updateGeojsonPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateGeojsonPointArgs, 'id' | 'point'>>;
@@ -1508,6 +1531,7 @@ export type WaterbodyResolvers<ContextType = Context, ParentType extends Resolve
   distance?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   geometries?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  is_saved?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType, Partial<WaterbodyLocationsArgs>>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType, Partial<WaterbodyMediaArgs>>;
   most_caught_species?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;

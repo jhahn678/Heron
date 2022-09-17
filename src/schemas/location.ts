@@ -27,6 +27,8 @@ export const typeDef =  gql`
         geom: Geometry
         hexcolor: String
         created_at: DateTime
+        total_favorites: Int
+        is_favorited: Boolean
     }
 
     type Query {
@@ -43,6 +45,7 @@ export const typeDef =  gql`
         addLocationMedia(id: Int!, media: [MediaInput!]!): [LocationMedia]
         removeLocationMedia(id: Int!): LocationMedia
         deleteLocation(id: Int!): Location
+        toggleFavoriteLocation(id: Int!): Boolean 
     }
 
     enum Privacy {
@@ -109,9 +112,9 @@ export const resolver: Resolvers = {
         //needs tested
         location: async (_, { id }, { auth }) => {
             const query = knex("locations")
-              .select(
-                "*",
-                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+              .select("*",
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                knex.raw(`(count(*) from location_favorties where location = ?) as total_favorites`, [id])
               )
               .where("id", id)
               .andWhere("privacy", "=", Privacy.Public);
@@ -124,6 +127,16 @@ export const resolver: Resolvers = {
                     select user_two as "user" from contacts
                     where "user_one" = ?
                 )`,[auth, auth])
+                 query.select(knex.raw(`(
+                    select exists(
+                        select "user" 
+                        from location_favorites 
+                        where "user" = ? 
+                        and location = ?)
+                    ) as is_favorited
+                `, [auth, id]))
+            }else{
+                query.select(knex.raw('false as is_favorited'))
             }
             const location = await query.first()
             return location;
@@ -131,9 +144,12 @@ export const resolver: Resolvers = {
         //needs tested
         locations: async (_, { id, type, coordinates, limit, offset, sort }, { auth }) => {
             if(!id) throw new LocationQueryError('ID_NOT_PROVIDED')
-            const query = knex("locations").select(
-              "*",
-              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+            const query = knex("locations").select("*",
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                knex.raw(`(
+                    count(*) from location_favorties 
+                    where location = ?
+                ) as total_favorites`, [id]),
             );
             switch(type){
                 case LocationQuery.User:
@@ -347,6 +363,20 @@ export const resolver: Resolvers = {
             }))
 
             return res[0]
+        },
+        toggleFavoriteLocation: async (_, { id }, { auth }) => {
+            if (!auth) throw new AuthenticationError("Authentication Required");
+
+            const deleted = await knex('locationFavorites')
+                .where({ location: id, user: auth })
+                .del()
+                
+            if(deleted === 1) return false;
+
+            await knex('locationFavorites')
+                .insert({ user: auth, location: id })
+
+            return true;
         }
     },
     Location: {

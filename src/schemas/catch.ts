@@ -28,6 +28,8 @@ export const typeDef =  gql`
         media(limit: Int): [CatchMedia]
         created_at: DateTime,
         updated_at: DateTime
+        total_favorites: Int
+        is_favorited: Boolean
     }
 
     enum CatchSort{
@@ -54,6 +56,7 @@ export const typeDef =  gql`
         addCatchMedia(id: Int!, media: [MediaInput!]!): [CatchMedia]
         removeCatchMedia(id: Int!): CatchMedia
         deleteCatch(id: Int!): Catch
+        toggleFavoriteCatch(id: Int!): Boolean
     }
 
     enum CatchQuery {
@@ -86,15 +89,23 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
-        catch: async (_, { id }) => {
-            const res = await knex("catches")
-              .select(
-                "*",
-                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
-              )
-              .where({ id })
-              .first();
-            return res;
+        catch: async (_, { id }, { auth }) => {
+            const query = knex("catches")
+                .where({ id })
+                .select("*",
+                    knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                    knex.raw(`(count(*) from catch_favorties where catch = ?) as total_favorites`, [id])
+                )
+            if(auth){
+                query.select(knex.raw(`(select exists (
+                    select "user" from catch_favorites where "user" = ? and catch = ?
+                )) as is_favorited`,[auth, id]));
+            }else{
+                query.select(knex.raw(''))
+            }
+
+            const result = await query.first();
+            return result;
         },
         //needs tested
         catches: async (_, { id, type, offset, limit, queryLocation, sort }) => {
@@ -245,6 +256,20 @@ export const resolver: Resolvers = {
             }))
 
             return res[0];
+        },
+        toggleFavoriteLocation: async (_, { id }, { auth }) => {
+            if (!auth) throw new AuthenticationError("Authentication Required");
+
+            const deleted = await knex("catchFavorites")
+              .where({ catch: id, user: auth })
+              .del();
+
+            if (deleted === 1) return false;
+
+            await knex("catchFavorites")
+                .insert({ user: auth, catch: id })
+                
+            return true;
         }
     },
     Catch: {

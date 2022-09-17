@@ -26,6 +26,11 @@ export interface ICatchMedia {
     created_at: string
 }
 
+export interface ICatchFavorite {
+    catch: number
+    user: number
+}
+
 export interface NewCatchBuilder {
     user: number,
     waterbody?: number,

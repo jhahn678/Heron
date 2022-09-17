@@ -22,6 +22,11 @@ export interface ILocationMedia {
     created_at: Date
 }
 
+export interface ILocationFavorite {
+    location: number
+    user: number
+}
+
 export interface NewLocationObj {
     user: number,
     waterbody: number,
