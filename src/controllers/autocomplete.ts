@@ -6,11 +6,11 @@ import { AutocompleteQueryError } from "../utils/errors/AutocompleteQueryError";
 import { validateAdminOne } from "../utils/validations/validateAdminOne";
 
 interface AutocompleteQuery {
+    /** Query value */
     value: string,
+    /** Comma seperated longitude,latitude */
     lnglat?: string
 }
-
-
 
 export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res, next) => {
     
