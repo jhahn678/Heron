@@ -87,15 +87,21 @@ export const typeDef =  gql`
 export const resolver: Resolvers = {
     Query: {
         catch: async (_, { id }) => {
-            const res = await knex('catches')
-                .select('*', knex.raw('st_asgeojson(st_transform(geom, 4326)) as geom'))
-                .where({ id })
-                .first()
+            const res = await knex("catches")
+              .select(
+                "*",
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+              )
+              .where({ id })
+              .first();
             return res;
         },
         //needs tested
         catches: async (_, { id, type, offset, limit, queryLocation, sort }) => {
-            const query = knex('catches')
+            const query = knex("catches").select(
+              "*",
+              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+            );
             switch(type){
                 case CatchQuery.User:
                     if(!id) throw new CatchQueryError('ID_NOT_PROVIDED');
