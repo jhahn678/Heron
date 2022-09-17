@@ -268,12 +268,20 @@ export enum ClassificationEnum {
   Stream = 'stream'
 }
 
+export type Coordinates = {
+  latitude: Scalars['Float'];
+  longitude: Scalars['Float'];
+};
+
 export type Location = {
   __typename?: 'Location';
+  created_at?: Maybe<Scalars['DateTime']>;
   description?: Maybe<Scalars['String']>;
   geom?: Maybe<Scalars['Geometry']>;
+  hexcolor?: Maybe<Scalars['String']>;
   id: Scalars['Int'];
   media?: Maybe<Array<Maybe<LocationMedia>>>;
+  nearest_geoplace?: Maybe<Scalars['String']>;
   privacy: Privacy;
   title?: Maybe<Scalars['String']>;
   user: User;
@@ -585,10 +593,10 @@ export type QueryLocationArgs = {
 
 
 export type QueryLocationsArgs = {
+  coordinates?: InputMaybe<Coordinates>;
   id?: InputMaybe<Scalars['Int']>;
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
-  queryLocation?: InputMaybe<QueryLocation>;
   sort?: InputMaybe<LocationSort>;
   type: LocationQuery;
 };
@@ -861,6 +869,7 @@ export type ResolversTypes = ResolversObject<{
   CatchQuery: CatchQuery;
   CatchSort: CatchSort;
   ClassificationEnum: ClassificationEnum;
+  Coordinates: Coordinates;
   CountryCode: ResolverTypeWrapper<Scalars['CountryCode']>;
   Cuid: ResolverTypeWrapper<Scalars['Cuid']>;
   Currency: ResolverTypeWrapper<Scalars['Currency']>;
@@ -970,6 +979,7 @@ export type ResolversParentTypes = ResolversObject<{
   Catch: ICatch;
   CatchDetails: CatchDetails;
   CatchMedia: ICatchMedia;
+  Coordinates: Coordinates;
   CountryCode: Scalars['CountryCode'];
   Cuid: Scalars['Cuid'];
   Currency: Scalars['Currency'];
@@ -1244,10 +1254,13 @@ export interface LocaleScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
 }
 
 export type LocationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Location'] = ResolversParentTypes['Location']> = ResolversObject<{
+  created_at?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   geom?: Resolver<Maybe<ResolversTypes['Geometry']>, ParentType, ContextType>;
+  hexcolor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
+  nearest_geoplace?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   privacy?: Resolver<ResolversTypes['Privacy'], ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
