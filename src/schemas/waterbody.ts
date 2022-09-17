@@ -11,11 +11,11 @@ export const typeDef =  gql`
         id: Int!
         name: String
         classification: String
+        ccode: String
         country: String
+        subregion: String
         admin_one: [String]
         admin_two: [String]
-        ccode: String
-        subregion: String
         geometries: Geometry
         catches(offset: Int, limit: Int, sort: CatchSort): [Catch]
         total_catches: Int
@@ -29,6 +29,7 @@ export const typeDef =  gql`
         reviews(offset: Int, limit: Int, sort: ReviewSort): [WaterbodyReview]
         total_reviews: Int
         average_rating: Float
+        is_saved: Boolean
         distance: Float
         rank: Float
     }
@@ -63,16 +64,29 @@ export const typeDef =  gql`
 
     type Mutation {
         addWaterbodyMedia(id: Int!, media: [MediaInput!]!): [WaterbodyMedia]
-        toggleSaveWaterbody(id: Int!): Int
+        toggleSaveWaterbody(id: Int!): Boolean
     }
 `
 
 export const resolver: Resolvers = {
     Query: {
-        waterbody: async (_, { id }) => {
-            const result = await knex('waterbodies')
-                .where('id', id)
-                .first()
+        waterbody: async (_, { id }, { auth }) => {
+            const query = knex("waterbodies").where("id", id)
+            if(auth) {
+                query.select("*",
+                  knex.raw(`
+                    (select exists (
+                        select "user" 
+                        from saved_waterbodies 
+                        where "user" = ? 
+                        and waterbody = ?
+                    )) as is_saved`,
+                    [auth, id]
+                ));
+            }else{
+                query.select('*', knex.raw('false as is_saved'))
+            }
+            const result = await query.first();
             return result
         },
         waterbodies: async (_, args) => {
@@ -108,15 +122,12 @@ export const resolver: Resolvers = {
 
             const deleted = await knex('savedWaterbodies')
                 .where({ user: auth, waterbody: id })
-                .del().returning('waterbody')
-
-            if(deleted.length > 0) return deleted[0].waterbody
+                .del()
+            if(deleted === 1) return false;
 
             const inserted = await knex('savedWaterbodies')
                 .insert({ user: auth, waterbody: id })
-                .returning('waterbody')
-            
-            return inserted[0].waterbody
+            return true;
         },
         addWaterbodyMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
