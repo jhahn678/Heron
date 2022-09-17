@@ -5,12 +5,17 @@ import UploadRouter from './upload'
 import AutocompleteRouter from './autocomplete'
 const router = Router();
 
-
-import redis from '../configs/redis'
-import * as crypto from 'crypto'
 import { asyncWrapper } from '../utils/errors/asyncWrapper';
+import knex from '../configs/knex'
 router.get('/dev', asyncWrapper(async (req, res) => {
-    const result = await redis.del("qRtFs-4jRmrM5bgfjurclS2lkDk_29e93knqXIjkQkA")
+
+    const result = await knex("locations")
+        .select(
+             "*",
+            knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+        ).where('waterbody', 162607)
+
+
     res.status(200).json(result)
 }))
 
