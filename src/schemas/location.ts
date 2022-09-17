@@ -22,13 +22,16 @@ export const typeDef =  gql`
         description: String,
         user: User!
         waterbody: Waterbody
+        nearest_geoplace: String
         media: [LocationMedia]
         geom: Geometry
+        hexcolor: String
+        created_at: DateTime
     }
 
     type Query {
         location(id: Int!): Location
-        locations(type: LocationQuery!, id: Int, queryLocation: QueryLocation, limit: Int, offset: Int, sort: LocationSort): [Location]
+        locations(type: LocationQuery!, id: Int, coordinates: Coordinates, limit: Int, offset: Int, sort: LocationSort): [Location]
     }
 
     type Mutation {
@@ -51,6 +54,11 @@ export const typeDef =  gql`
     enum LocationQuery {
         USER
         WATERBODY
+    }
+
+    input Coordinates {
+        latitude: Float!
+        longitude: Float!
     }
 
     enum LocationSort {
@@ -100,44 +108,45 @@ export const resolver: Resolvers = {
     Query: {
         //needs tested
         location: async (_, { id }, { auth }) => {
-            const query = knex('locations')
-                .where('id', id)
-                .andWhere('privacy', '=', Privacy.Public)
+            const query = knex("locations")
+              .select(
+                "*",
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+              )
+              .where("id", id)
+              .andWhere("privacy", "=", Privacy.Public);
             if(auth){
                 query.orWhere('user', auth)
-                query.orWhereRaw(`
-                    privacy = 'friends'
-                    and "user" in (
-                        select user_one as "user" from contacts
-                        where "user_two" = ?
-                        union all 
-                        select user_two as "user" from contacts
-                        where "user_one" = ?
-                    )
-                `,[auth, auth])
+                query.orWhereRaw(`privacy = 'friends' and "user" in (
+                    select user_one as "user" from contacts
+                    where "user_two" = ?
+                    union all
+                    select user_two as "user" from contacts
+                    where "user_one" = ?
+                )`,[auth, auth])
             }
             const location = await query.first()
             return location;
         },
         //needs tested
-        locations: async (_, { id, type, queryLocation, limit, offset, sort }, { auth }) => {
+        locations: async (_, { id, type, coordinates, limit, offset, sort }, { auth }) => {
             if(!id) throw new LocationQueryError('ID_NOT_PROVIDED')
-            const query = knex('locations')
+            const query = knex("locations").select(
+              "*",
+              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+            );
             switch(type){
                 case LocationQuery.User:
                     query.where('user', id)
                     query.andWhere('privacy', Privacy.Public)
                     if(auth){
-                        query.orWhereRaw(`
-                            privacy = 'friends'
-                            and "user" in (
-                                select user_one as "user" from contacts
-                                where "user_two" = ?
-                                union all 
-                                select user_two as "user" from contacts
-                                where "user_one" = ?
-                            )
-                        `, [auth, auth])
+                        query.orWhereRaw(`privacy = 'friends' and "user" in (
+                            select user_one as "user" from contacts
+                            where "user_two" = ?
+                            union all
+                            select user_two as "user" from contacts
+                            where "user_one" = ?
+                        )`, [auth, auth])
                     }
                     break;
                 case LocationQuery.Waterbody:
@@ -146,16 +155,13 @@ export const resolver: Resolvers = {
                     if(auth){
                         //The right way to do this may be to not show friend-only
                         //locations via the waterbody page
-                        query.orWhereRaw(`
-                            privacy = 'friends'
-                            and "user" in (
-                                select user_one as "user" from contacts
-                                where "user_two" = ?
-                                union all 
-                                select user_two as "user" from contacts
-                                where "user_one" = ?
-                            )
-                        `, [auth, auth])
+                        query.orWhereRaw(`privacy = 'friends' and "user" in (
+                            select user_one as "user" from contacts
+                            where "user_two" = ?
+                            union all
+                            select user_two as "user" from contacts
+                            where "user_one" = ?
+                        )`, [auth, auth])
                     }
                     break
             }
@@ -167,8 +173,8 @@ export const resolver: Resolvers = {
                     query.orderBy('created_at', 'asc')
                     break;
                 case LocationSort.Nearest:
-                    if(!queryLocation) throw new LocationQueryError('QUERY_LOCATION_NOT_PROVIDED')
-                    const { latitude, longitude } = queryLocation;
+                    if(!coordinates) throw new LocationQueryError('COORDINATES_NOT_PROVIDED')
+                    const { latitude, longitude } = coordinates;
                     const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
                     query.orderByRaw('geom <-> ?', [point])
                     break;
@@ -347,6 +353,14 @@ export const resolver: Resolvers = {
         user: async ({ user }) => {
             const res = await knex('users').where({ id: user })
             return res[0];
+        },
+        nearest_geoplace: async ({ geom }) => {
+            const result = await knex.raw(`
+                select "name", "admin_one" from geoplaces where "fcode" = 'PPL'
+                order by geom <-> st_transform(st_geomfromgeojson(?), 3857)
+                limit 1
+            `, [geom])
+            return `${result.rows[0].name}, ${result.rows[0].admin_one}`
         },
         waterbody: async ({ waterbody: id }) => {
             const result = await knex('waterbodies').where({ id }).first()
