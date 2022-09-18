@@ -29,6 +29,7 @@ export const typeDef =  gql`
         created_at: DateTime
         total_favorites: Int
         is_favorited: Boolean
+        is_saved: Boolean
     }
 
     type Query {
@@ -46,6 +47,7 @@ export const typeDef =  gql`
         removeLocationMedia(id: Int!): LocationMedia
         deleteLocation(id: Int!): Location
         toggleFavoriteLocation(id: Int!): Boolean 
+        toggleSaveLocation(id: Int!): Boolean
     }
 
     enum Privacy {
@@ -67,6 +69,7 @@ export const typeDef =  gql`
     enum LocationSort {
         CREATED_AT_NEWEST
         CREATED_AT_OLDEST
+        MOST_RECOMMENDED
         NEAREST
     }
 
@@ -112,9 +115,15 @@ export const resolver: Resolvers = {
         //needs tested
         location: async (_, { id }, { auth }) => {
             const query = knex("locations")
-              .select("*",
-                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-                knex.raw(`(count(*) from location_favorties where location = ?) as total_favorites`, [id])
+              .select(
+                "*",
+                knex.raw(
+                  "st_asgeojson(st_transform(geom, 4326))::json as geom"
+                ),
+                knex.raw(
+                  `(select count(*) from location_favorites where location_favorites.location = ?) as total_favorites`,
+                  [id]
+                )
               )
               .where("id", id)
               .andWhere("privacy", "=", Privacy.Public);
@@ -127,14 +136,16 @@ export const resolver: Resolvers = {
                     select user_two as "user" from contacts
                     where "user_one" = ?
                 )`,[auth, auth])
-                 query.select(knex.raw(`(
-                    select exists(
-                        select "user" 
-                        from location_favorites 
-                        where "user" = ? 
-                        and location = ?)
-                    ) as is_favorited
-                `, [auth, id]))
+                 query.select(
+                   knex.raw(`( select exists (
+                        select "user" from location_favorites 
+                        where "user" = ? and location = ?)
+                    ) as is_favorited`,[auth, id]),
+                   knex.raw(`(select exists(
+                        select "user" from saved_locations 
+                        where "user" = ? and location = ?)
+                    ) as is_saved`, [auth, id])
+                 );
             }else{
                 query.select(knex.raw('false as is_favorited'))
             }
@@ -144,12 +155,13 @@ export const resolver: Resolvers = {
         //needs tested
         locations: async (_, { id, type, coordinates, limit, offset, sort }, { auth }) => {
             if(!id) throw new LocationQueryError('ID_NOT_PROVIDED')
-            const query = knex("locations").select("*",
-                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-                knex.raw(`(
-                    count(*) from location_favorties 
-                    where location = ?
-                ) as total_favorites`, [id]),
+            const query = knex("locations").select(
+              "*",
+              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+              knex.raw(`(
+                select count(*) from location_favorites 
+                where location = ?
+                ) as total_favorites`, [id])
             );
             switch(type){
                 case LocationQuery.User:
@@ -181,22 +193,27 @@ export const resolver: Resolvers = {
                     }
                     break
             }
-            switch (sort){
-                case LocationSort.CreatedAtNewest:
-                    query.orderBy('created_at', 'desc')
-                    break;
-                case LocationSort.CreatedAtOldest:
-                    query.orderBy('created_at', 'asc')
-                    break;
-                case LocationSort.Nearest:
-                    if(!coordinates) throw new LocationQueryError('COORDINATES_NOT_PROVIDED')
-                    const { latitude, longitude } = coordinates;
-                    const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
-                    query.orderByRaw('geom <-> ?', [point])
-                    break;
-                default:
-                    query.orderBy('created_at', 'desc')
-                    break;
+            switch (sort) {
+              case LocationSort.CreatedAtNewest:
+                query.orderBy("created_at", "desc");
+                break;
+              case LocationSort.CreatedAtOldest:
+                query.orderBy("created_at", "asc");
+                break;
+              case LocationSort.MostRecommended:
+                query.orderByRaw(`(
+                    select count(*) from location_favorites where location = ?
+                ) desc`, [id])
+                break;
+              case LocationSort.Nearest:
+                if (!coordinates) throw new LocationQueryError("COORDINATES_NOT_PROVIDED");
+                const { latitude, longitude } = coordinates;
+                const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326),3857);
+                query.orderByRaw("geom <-> ?", [point]);
+                break;
+              default:
+                query.orderBy("created_at", "desc");
+                break;
             }
             query.offset(offset || 0)
             query.limit(limit || 20)
@@ -370,7 +387,7 @@ export const resolver: Resolvers = {
             const deleted = await knex('locationFavorites')
                 .where({ location: id, user: auth })
                 .del()
-                
+
             if(deleted === 1) return false;
 
             await knex('locationFavorites')
@@ -383,6 +400,20 @@ export const resolver: Resolvers = {
         user: async ({ user }) => {
             const res = await knex('users').where({ id: user })
             return res[0];
+        },
+        is_saved: async ({ id, is_saved }, _, { auth }) => {
+            if(is_saved !== undefined) return is_saved;
+            if(!auth) return false;
+            const res = await knex('savedLocations').where({ location: id, user: auth })
+            if(res.length > 0) return true;
+            return false;
+        },
+        is_favorited: async ({ id, is_favorited }, _, { auth }) => {
+            if(is_favorited !== undefined) return is_favorited;
+            if(!auth) return false;
+            const res = await knex('locationFavorites').where({ location: id, user: auth })
+            if(res.length > 0) return true;
+            return false;
         },
         nearest_geoplace: async ({ geom }) => {
             const result = await knex.raw(`

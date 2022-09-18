@@ -11,6 +11,8 @@ export interface ILocation {
     description: string,
     geom: Point | Polygon | LineString
     hexcolor: string
+    is_saved?: boolean
+    is_favorited?: boolean
 }
 
 export interface ILocationMedia {
@@ -23,6 +25,11 @@ export interface ILocationMedia {
 }
 
 export interface ILocationFavorite {
+    location: number
+    user: number
+}
+
+export interface ISavedLocation {
     location: number
     user: number
 }

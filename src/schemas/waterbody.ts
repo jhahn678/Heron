@@ -72,20 +72,12 @@ export const resolver: Resolvers = {
     Query: {
         waterbody: async (_, { id }, { auth }) => {
             const query = knex("waterbodies").where("id", id)
-            if(auth) {
-                query.select("*",
-                  knex.raw(`
-                    (select exists (
-                        select "user" 
-                        from saved_waterbodies 
-                        where "user" = ? 
-                        and waterbody = ?
-                    )) as is_saved`,
-                    [auth, id]
-                ));
-            }else{
-                query.select('*', knex.raw('false as is_saved'))
-            }
+            if(auth) query.select("*",
+                knex.raw(`(select exists (
+                select "user" from saved_waterbodies 
+                where "user" = ? and waterbody = ?
+                )) as is_saved`,[auth, id]
+            ));
             const result = await query.first();
             return result
         },
@@ -172,6 +164,12 @@ export const resolver: Resolvers = {
                 .offset(offset || 0)
                 .limit(limit || 4)
             return catches;
+        },
+        is_saved: async ({ id, is_saved }, _, { auth }) => {
+            if(is_saved !== undefined) return is_saved;
+            if(!auth) return false;
+            const res = await knex('savedWaterbodies').where({ user: auth, waterbody: id })
+            if(res.length > 0) return true; return false;
         },
         total_catches: async ({ id }) => {
             const result = await knex('catches').where({ waterbody: id }).count('id')

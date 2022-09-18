@@ -9,6 +9,7 @@ export interface IWaterbody {
     ccode: string
     admin_one: string[]
     admin_two: string[]
+    is_saved?: boolean
 }
 
 export interface IWaterbodyMedia {

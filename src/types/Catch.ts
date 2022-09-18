@@ -15,6 +15,7 @@ export interface ICatch {
     rig: string,
     created_at: Date,
     updated_at: Date
+    is_favorited?: boolean
 } 
 
 export interface ICatchMedia {

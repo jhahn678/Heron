@@ -94,7 +94,7 @@ export const resolver: Resolvers = {
                 .where({ id })
                 .select("*",
                     knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-                    knex.raw(`(count(*) from catch_favorties where catch = ?) as total_favorites`, [id])
+                    knex.raw(`(select count(*) from catch_favorites where catch = ?) as total_favorites`,[id])
                 )
             if(auth){
                 query.select(knex.raw(`(select exists (
@@ -111,7 +111,8 @@ export const resolver: Resolvers = {
         catches: async (_, { id, type, offset, limit, queryLocation, sort }) => {
             const query = knex("catches").select(
               "*",
-              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
+              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+              knex.raw(`(select count(*) from catch_favorites where catch = ?) as total_favorites`,[id])
             );
             switch(type){
                 case CatchQuery.User:
@@ -268,7 +269,7 @@ export const resolver: Resolvers = {
 
             await knex("catchFavorites")
                 .insert({ user: auth, catch: id })
-                
+
             return true;
         }
     },
@@ -276,6 +277,13 @@ export const resolver: Resolvers = {
         user: async ({ user: id }) => {
             const res = await knex('users').where({ id })
             return res[0];
+        },
+        is_favorited: async ({ id, is_favorited }, _, { auth }) => {
+            if(is_favorited !== undefined) return is_favorited;
+            if(!auth) return false;
+            const res = await knex('catchFavorites').where({ catch: id, user: auth })
+            if(res.length > 0) return true;
+            return false;
         },
         waterbody: async ({ waterbody: id }) => {
             const result = await knex('waterbodies').where({ id }).first()

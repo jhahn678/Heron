@@ -283,6 +283,7 @@ export type Location = {
   hexcolor?: Maybe<Scalars['String']>;
   id: Scalars['Int'];
   is_favorited?: Maybe<Scalars['Boolean']>;
+  is_saved?: Maybe<Scalars['Boolean']>;
   media?: Maybe<Array<Maybe<LocationMedia>>>;
   nearest_geoplace?: Maybe<Scalars['String']>;
   privacy: Privacy;
@@ -314,6 +315,7 @@ export enum LocationQuery {
 export enum LocationSort {
   CreatedAtNewest = 'CREATED_AT_NEWEST',
   CreatedAtOldest = 'CREATED_AT_OLDEST',
+  MostRecommended = 'MOST_RECOMMENDED',
   Nearest = 'NEAREST'
 }
 
@@ -352,6 +354,7 @@ export type Mutation = {
   removeLocationMedia?: Maybe<LocationMedia>;
   toggleFavoriteCatch?: Maybe<Scalars['Boolean']>;
   toggleFavoriteLocation?: Maybe<Scalars['Boolean']>;
+  toggleSaveLocation?: Maybe<Scalars['Boolean']>;
   toggleSaveWaterbody?: Maybe<Scalars['Boolean']>;
   updateCatchDetails?: Maybe<Catch>;
   updateCatchLocation?: Maybe<Catch>;
@@ -462,6 +465,11 @@ export type MutationToggleFavoriteCatchArgs = {
 
 
 export type MutationToggleFavoriteLocationArgs = {
+  id: Scalars['Int'];
+};
+
+
+export type MutationToggleSaveLocationArgs = {
   id: Scalars['Int'];
 };
 
@@ -1279,6 +1287,7 @@ export type LocationResolvers<ContextType = Context, ParentType extends Resolver
   hexcolor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   is_favorited?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  is_saved?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
   nearest_geoplace?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   privacy?: Resolver<ResolversTypes['Privacy'], ParentType, ContextType>;
@@ -1343,6 +1352,7 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   removeLocationMedia?: Resolver<Maybe<ResolversTypes['LocationMedia']>, ParentType, ContextType, RequireFields<MutationRemoveLocationMediaArgs, 'id'>>;
   toggleFavoriteCatch?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleFavoriteCatchArgs, 'id'>>;
   toggleFavoriteLocation?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleFavoriteLocationArgs, 'id'>>;
+  toggleSaveLocation?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveLocationArgs, 'id'>>;
   toggleSaveWaterbody?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveWaterbodyArgs, 'id'>>;
   updateCatchDetails?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchDetailsArgs, 'details' | 'id'>>;
   updateCatchLocation?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchLocationArgs, 'coords' | 'id'>>;
