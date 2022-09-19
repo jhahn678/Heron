@@ -115,15 +115,13 @@ export const resolver: Resolvers = {
         //needs tested
         location: async (_, { id }, { auth }) => {
             const query = knex("locations")
-              .select(
-                "*",
-                knex.raw(
-                  "st_asgeojson(st_transform(geom, 4326))::json as geom"
-                ),
-                knex.raw(
-                  `(select count(*) from location_favorites where location_favorites.location = ?) as total_favorites`,
-                  [id]
-                )
+              .select("*",
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                knex.raw(`(
+                    select count(*) from location_favorites 
+                    where location_favorites.location = ?
+                    ) as total_favorites
+                `,[id])
               )
               .where("id", id)
               .andWhere("privacy", "=", Privacy.Public);
@@ -147,7 +145,10 @@ export const resolver: Resolvers = {
                     ) as is_saved`, [auth, id])
                  );
             }else{
-                query.select(knex.raw('false as is_favorited'))
+                query.select(
+                    knex.raw('false as is_favorited'),
+                    knex.raw('false as is_saved')
+                )
             }
             const location = await query.first()
             return location;
