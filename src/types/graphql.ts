@@ -519,7 +519,7 @@ export type MutationUpdateUserDetailsArgs = {
 };
 
 export type NewCatch = {
-  coordinates?: InputMaybe<Array<InputMaybe<Scalars['Float']>>>;
+  coordinates?: InputMaybe<Array<Scalars['Float']>>;
   description?: InputMaybe<Scalars['String']>;
   length?: InputMaybe<Scalars['Float']>;
   media?: InputMaybe<Array<MediaInput>>;
