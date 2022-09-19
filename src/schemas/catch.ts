@@ -41,7 +41,7 @@ export const typeDef =  gql`
 
     type Point {
         type: String,
-        coordinates: [Float]
+        coordinates: [Float!]
     }
 
     type Query {
@@ -67,7 +67,7 @@ export const typeDef =  gql`
 
     input NewCatch {
         waterbody: Int
-        coordinates: [Float]    
+        coordinates: [Float!]    
         title: String,          @constraint(maxLength: 100)
         description: String,    @constraint(maxLength: 255)
         species: String         @constraint(maxLength: 100)
@@ -171,17 +171,22 @@ export const resolver: Resolvers = {
             if(length) catchObj['length'] = length;
             if(coordinates && validatePointCoordinates(coordinates)){
                 const [lng, lat] = coordinates;
-                catchObj['geom'] = st.setSRID(st.point(lng!, lat!), 4326)
+                catchObj['geom'] = st.transform(st.setSRID(st.point(lng!, lat!), 4326), 3857)
             }
-            const res = await knex('catches').insert(catchObj).returning('*')
+            const res = await knex("catches")
+              .insert(catchObj)
+              .returning('*');
+              
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
                 const uploads = valid.map(x => ({ user: auth, catch: res[0].id, ...x}))
                 if(uploads.length === 0) throw new UploadError('INVALID_URL')
                 await knex('catchMedia').insert(uploads)
             }
-            
-            return res[0]
+
+            const result = { ...res[0], total_favorites: 0 };
+            if(coordinates) result.geom = { type: 'Point', coordinates }
+            return result;
         },
         // needs tested
         updateCatchDetails: async (_, { id, details }, { auth }) => {
@@ -209,7 +214,7 @@ export const resolver: Resolvers = {
             }
 
             const [lng, lat] = coords;
-            const geom = st.setSRID(st.point(lng!, lat!), 4326)
+            const geom = st.transform(st.setSRID(st.point(lng!, lat!), 4326),3857)
 
             const res = await knex('catches').where({ id, user: auth }).update({ geom }).returning('*')
             if(res.length === 0) throw new RequestError('TRANSACTION_NOT_FOUND')
@@ -258,18 +263,16 @@ export const resolver: Resolvers = {
 
             return res[0];
         },
-        toggleFavoriteLocation: async (_, { id }, { auth }) => {
+        toggleFavoriteCatch: async (_, { id }, { auth }) => {
             if (!auth) throw new AuthenticationError("Authentication Required");
 
             const deleted = await knex("catchFavorites")
               .where({ catch: id, user: auth })
               .del();
-
             if (deleted === 1) return false;
 
             await knex("catchFavorites")
                 .insert({ user: auth, catch: id })
-
             return true;
         }
     },
