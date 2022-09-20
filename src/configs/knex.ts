@@ -13,7 +13,7 @@ const knex = Knex({
     client: 'pg',
     connection: PG_DB_CONNECTION,
     pool: { min: 0, max: 25 },
-    wrapIdentifier: (value, origImpl) => origImpl(camelToSnakeCase(value)),
+    wrapIdentifier: (value, origImpl) => origImpl(camelToSnakeCase(value))
 })
 
 export const st = KnexPostgis(knex)

@@ -253,6 +253,7 @@ export enum CatchSort {
   CreatedAtNewest = 'CREATED_AT_NEWEST',
   CreatedAtOldest = 'CREATED_AT_OLDEST',
   LengthLargest = 'LENGTH_LARGEST',
+  Nearest = 'NEAREST',
   WeightLargest = 'WEIGHT_LARGEST'
 }
 
@@ -602,10 +603,10 @@ export type QueryCatchArgs = {
 
 
 export type QueryCatchesArgs = {
+  coordinates?: InputMaybe<Coordinates>;
   id?: InputMaybe<Scalars['Int']>;
   limit?: InputMaybe<Scalars['Int']>;
   offset?: InputMaybe<Scalars['Int']>;
-  queryLocation?: InputMaybe<QueryLocation>;
   sort?: InputMaybe<CatchSort>;
   type: CatchQuery;
 };

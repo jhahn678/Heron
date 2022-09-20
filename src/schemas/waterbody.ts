@@ -117,7 +117,7 @@ export const resolver: Resolvers = {
                 .del()
             if(deleted === 1) return false;
 
-            const inserted = await knex('savedWaterbodies')
+            await knex('savedWaterbodies')
                 .insert({ user: auth, waterbody: id })
             return true;
         },
