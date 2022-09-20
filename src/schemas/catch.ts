@@ -37,6 +37,7 @@ export const typeDef =  gql`
         CREATED_AT_OLDEST
         LENGTH_LARGEST
         WEIGHT_LARGEST
+        NEAREST
     }
 
     type Point {
@@ -46,7 +47,7 @@ export const typeDef =  gql`
 
     type Query {
         catch(id: Int!): Catch
-        catches(type: CatchQuery!, id: Int, queryLocation: QueryLocation, offset: Int, limit: Int, sort: CatchSort): [Catch]
+        catches(type: CatchQuery!, id: Int, coordinates: Coordinates, offset: Int, limit: Int, sort: CatchSort): [Catch]
     }
 
     type Mutation {
@@ -101,14 +102,14 @@ export const resolver: Resolvers = {
                     select "user" from catch_favorites where "user" = ? and catch = ?
                 )) as is_favorited`,[auth, id]));
             }else{
-                query.select(knex.raw(''))
+                query.select(knex.raw('false as is_favorited'))
             }
 
             const result = await query.first();
             return result;
         },
         //needs tested
-        catches: async (_, { id, type, offset, limit, queryLocation, sort }) => {
+        catches: async (_, { id, type, offset, limit, coordinates, sort }) => {
             const query = knex("catches").select(
               "*",
               knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
@@ -124,10 +125,8 @@ export const resolver: Resolvers = {
                     query.where('waterbody', id); 
                     break;
                 case CatchQuery.Coordinates:
-                    if(!queryLocation) throw new CatchQueryError('QUERY_LOCATION_NOT_PROVIDED')
-                    const { latitude, longitude, withinMeters=100000 } = queryLocation;
-                    const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
-                    query.where(st.dwithin('geom', point, withinMeters, false))
+                    if(!coordinates) throw new CatchQueryError('COORDINATES_NOT_PROVIDED')
+                    break;
             }
             switch(sort){
                 case(CatchSort.CreatedAtNewest):
@@ -141,6 +140,12 @@ export const resolver: Resolvers = {
                     break;
                 case(CatchSort.WeightLargest):
                     query.orderBy('weight', 'desc')
+                    break;
+                case(CatchSort.Nearest):
+                    if(!coordinates) throw new CatchQueryError('COORDINATES_NOT_PROVIDED')
+                    const { latitude, longitude } = coordinates;
+                    const point = st.transform(st.setSRID(st.point(longitude, latitude),4326),3857);
+                    query.orderByRaw('geom <-> ?', [point])
                     break;
                 default:
                     query.orderBy('created_at', 'desc')
