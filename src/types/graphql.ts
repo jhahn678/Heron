@@ -672,6 +672,15 @@ export type QueryLocation = {
   withinMeters: Scalars['Int'];
 };
 
+export type RatingCounts = {
+  __typename?: 'RatingCounts';
+  five: Scalars['Int'];
+  four: Scalars['Int'];
+  one: Scalars['Int'];
+  three: Scalars['Int'];
+  two: Scalars['Int'];
+};
+
 export enum ReviewSort {
   CreatedAtNewest = 'CREATED_AT_NEWEST',
   CreatedAtOldest = 'CREATED_AT_OLDEST',
@@ -749,6 +758,7 @@ export type Waterbody = {
   most_caught_species?: Maybe<Scalars['String']>;
   name?: Maybe<Scalars['String']>;
   rank?: Maybe<Scalars['Float']>;
+  rating_counts?: Maybe<RatingCounts>;
   reviews?: Maybe<Array<Maybe<WaterbodyReview>>>;
   subregion?: Maybe<Scalars['String']>;
   total_catches?: Maybe<Scalars['Int']>;
@@ -968,6 +978,7 @@ export type ResolversTypes = ResolversObject<{
   QueryLocation: QueryLocation;
   RGB: ResolverTypeWrapper<Scalars['RGB']>;
   RGBA: ResolverTypeWrapper<Scalars['RGBA']>;
+  RatingCounts: ResolverTypeWrapper<RatingCounts>;
   ReviewSort: ReviewSort;
   ReviewUpdate: ReviewUpdate;
   RoutingNumber: ResolverTypeWrapper<Scalars['RoutingNumber']>;
@@ -1074,6 +1085,7 @@ export type ResolversParentTypes = ResolversObject<{
   QueryLocation: QueryLocation;
   RGB: Scalars['RGB'];
   RGBA: Scalars['RGBA'];
+  RatingCounts: RatingCounts;
   ReviewUpdate: ReviewUpdate;
   RoutingNumber: Scalars['RoutingNumber'];
   SafeInt: Scalars['SafeInt'];
@@ -1454,6 +1466,15 @@ export interface RgbaScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
   name: 'RGBA';
 }
 
+export type RatingCountsResolvers<ContextType = Context, ParentType extends ResolversParentTypes['RatingCounts'] = ResolversParentTypes['RatingCounts']> = ResolversObject<{
+  five?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  four?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  one?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  three?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  two?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface RoutingNumberScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['RoutingNumber'], any> {
   name: 'RoutingNumber';
 }
@@ -1548,6 +1569,7 @@ export type WaterbodyResolvers<ContextType = Context, ParentType extends Resolve
   most_caught_species?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rank?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  rating_counts?: Resolver<Maybe<ResolversTypes['RatingCounts']>, ParentType, ContextType>;
   reviews?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyReview']>>>, ParentType, ContextType, Partial<WaterbodyReviewsArgs>>;
   subregion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   total_catches?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -1641,6 +1663,7 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   Query?: QueryResolvers<ContextType>;
   RGB?: GraphQLScalarType;
   RGBA?: GraphQLScalarType;
+  RatingCounts?: RatingCountsResolvers<ContextType>;
   RoutingNumber?: GraphQLScalarType;
   SafeInt?: GraphQLScalarType;
   SpeciesCount?: SpeciesCountResolvers<ContextType>;

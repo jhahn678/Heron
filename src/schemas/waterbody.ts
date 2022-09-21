@@ -29,6 +29,7 @@ export const typeDef =  gql`
         reviews(offset: Int, limit: Int, sort: ReviewSort): [WaterbodyReview]
         total_reviews: Int
         average_rating: Float
+        rating_counts: RatingCounts
         is_saved: Boolean
         distance: Float
         rank: Float
@@ -37,6 +38,14 @@ export const typeDef =  gql`
     type SpeciesCount {
         species: String
         count: Int
+    }
+
+    type RatingCounts {
+        five: Int!
+        four: Int!
+        three: Int!
+        two: Int!
+        one: Int!
     }
 
     type Query {
@@ -133,10 +142,10 @@ export const resolver: Resolvers = {
         },
     },
     Waterbody: {
-        geometries: async ({ id: waterbody }) => {
+        geometries: async ({ id }) => {
             const geometries = knex.raw('st_asgeojson(st_collect(st_transform(geom, 4326)))::json')
             const result = await knex('geometries')
-                .where({ waterbody })
+                .where('waterbody', id)
                 .select({ geometries })
                 .first()
             if(result) return result.geometries;
@@ -159,7 +168,7 @@ export const resolver: Resolvers = {
                     sortMethod = 'desc'; break;
             }
             const catches = await knex('catches')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .orderBy(sortField, sortMethod)
                 .offset(offset || 0)
                 .limit(limit || 4)
@@ -172,14 +181,14 @@ export const resolver: Resolvers = {
             if(res.length > 0) return true; return false;
         },
         total_catches: async ({ id }) => {
-            const result = await knex('catches').where({ waterbody: id }).count('id')
+            const result = await knex('catches').where('waterbody', id).count('id')
             const { count } = result[0]
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
         total_species: async ({ id }) => {
             const result = await knex('catches')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .countDistinct('species')
             const { count } = result[0]
             if(typeof count !== 'number') return parseInt(count)
@@ -187,7 +196,7 @@ export const resolver: Resolvers = {
         },
         all_species: async ({ id }) => {
             const result = await knex('catches')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .select('species', knex.raw('count(species)'))
                 .groupBy('species')
                 .orderByRaw('count desc')
@@ -196,7 +205,7 @@ export const resolver: Resolvers = {
         most_caught_species: async ({ id }) => {
             const result = knex('catches')
                 .select('species')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .groupBy('species')
                 .orderByRaw('count(*) desc')
             const res = await result;
@@ -205,21 +214,21 @@ export const resolver: Resolvers = {
         },
         locations: async ({ id }, { offset, limit }) => {
             const locations = await knex('locations')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 4)
             return locations;
         },
         total_locations: async ({ id }) => {
-            const result = await knex('locations').where({ waterbody: id }).count('id')
+            const result = await knex('locations').where('waterbody', id).count('id')
             const { count } = result[0]
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
         media: async ({ id }, { offset, limit }) => {
             const media = await knex('waterbodyMedia')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 1)
@@ -249,7 +258,7 @@ export const resolver: Resolvers = {
                     sortOrder = 'asc'; break;
             }
             const results = await knex('waterbodyReviews')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .orderBy(sortField, sortOrder)
                 .offset(offset || 0)
                 .limit(limit || 10)
@@ -257,7 +266,7 @@ export const resolver: Resolvers = {
         },
         total_reviews: async ({ id }) => {
             const result = await knex('waterbodyReviews')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .count()
             const { count } = result[0];
             if(typeof count !== 'number') return parseInt(count)
@@ -265,9 +274,34 @@ export const resolver: Resolvers = {
         },
         average_rating: async ({ id }) => {
             const result = await knex('waterbodyReviews')
-                .where({ waterbody: id })
+                .where('waterbody', id)
                 .avg('rating')
             return result[0].avg
+        },
+        rating_counts: async ({ id }) => {
+            const ratingCounts = { one: 0, two: 0, three: 0, four: 0, five: 0 };
+            const result = await knex('waterbodyReviews')
+                .where('waterbody', id)
+                .select('rating')
+                .count('id')
+                .groupBy('rating')
+            result.forEach(x => {
+                switch(x.rating){
+                    case 5:
+                        return ratingCounts.five = parseInt(x.count as string);
+                    case 4:
+                        return ratingCounts.four = parseInt(x.count as string);
+                    case 3:
+                        return ratingCounts.three = parseInt(x.count as string);
+                    case 2:
+                        return ratingCounts.two = parseInt(x.count as string);
+                    case 1:
+                        return ratingCounts.one = parseInt(x.count as string);
+                    default:
+                        return;
+                }
+            })
+            return ratingCounts;
         }
      }
 }
