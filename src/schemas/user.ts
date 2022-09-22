@@ -75,6 +75,7 @@ export const resolver: Resolvers = {
         activityFeed: async(_, { limit, offset }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
             const results = await knex('catches')
+                .select('*', knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"))
                 .whereIn('user', function(){
                     this.from('contacts')  
                         .select('user_one as user')
