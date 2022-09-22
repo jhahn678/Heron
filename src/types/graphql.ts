@@ -609,6 +609,7 @@ export type QueryCatchesArgs = {
   offset?: InputMaybe<Scalars['Int']>;
   sort?: InputMaybe<CatchSort>;
   type: CatchQuery;
+  within?: InputMaybe<Scalars['Int']>;
 };
 
 
