@@ -47,7 +47,15 @@ export const typeDef =  gql`
 
     type Query {
         catch(id: Int!): Catch
-        catches(type: CatchQuery!, id: Int, coordinates: Coordinates, offset: Int, limit: Int, sort: CatchSort): [Catch]
+        catches(
+            type: CatchQuery!, 
+            coordinates: Coordinates, 
+            within: Int, 
+            id: Int, 
+            offset: Int, 
+            limit: Int, 
+            sort: CatchSort
+        ): [Catch]
     }
 
     type Mutation {
@@ -109,11 +117,10 @@ export const resolver: Resolvers = {
             return result;
         },
         //needs tested
-        catches: async (_, { id, type, offset, limit, coordinates, sort }) => {
+        catches: async (_, { id, type, offset, limit, coordinates, within, sort }) => {
             const query = knex("catches").select(
               "*",
               knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-              knex.raw(`(select count(*) from catch_favorites where catch = ?) as total_favorites`,[id])
             );
             switch(type){
                 case CatchQuery.User:
@@ -145,6 +152,7 @@ export const resolver: Resolvers = {
                     if(!coordinates) throw new CatchQueryError('COORDINATES_NOT_PROVIDED')
                     const { latitude, longitude } = coordinates;
                     const point = st.transform(st.setSRID(st.point(longitude, latitude),4326),3857);
+                    if(within) query.where(st.dwithin('geom', point, within, false))
                     query.orderByRaw('geom <-> ?', [point])
                     break;
                 default:
