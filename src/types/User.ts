@@ -1,3 +1,7 @@
+import { ICatch } from "./Catch"
+import { Maybe, ResolversTypes, ResolverTypeWrapper } from "./graphql"
+import { IWaterbody } from "./Waterbody"
+
 export interface IUser {
     id: number,
     firstname: string,
@@ -34,4 +38,14 @@ export interface IPendingContact {
     user_sending: number,
     user_recipient: number,
     created_at: Date
+}
+
+export interface CatchStatistics {
+    total_catches: number
+    total_species: number
+    total_waterbodies: number
+    all_waterbodies: Maybe<Array<ResolverTypeWrapper<IWaterbody>>>
+    top_species: Maybe<string>,
+    top_waterbody: Maybe<ResolverTypeWrapper<IWaterbody>>
+    largest_catch: Maybe<ResolverTypeWrapper<ICatch>>
 }
