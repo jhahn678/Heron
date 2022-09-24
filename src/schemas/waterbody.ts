@@ -8,7 +8,7 @@ import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 export const typeDef =  gql`
 
     type Waterbody {
-        id: Int!
+        id: Int
         name: String
         classification: String
         ccode: String
@@ -50,7 +50,15 @@ export const typeDef =  gql`
 
     type Query {
         waterbody(id: Int!): Waterbody
-        waterbodies(value: String, classifications: [ClassificationEnum!], adminOne: [AdminOneEnum!], queryLocation: QueryLocation, offset: Int, limit: Int, sort: Sort): [Waterbody]
+        waterbodies(
+            value: String, 
+            classifications: [ClassificationEnum!], 
+            adminOne: [AdminOneEnum!], 
+            queryLocation: QueryLocation, 
+            offset: Int, 
+            limit: Int, 
+            sort: Sort
+        ): [Waterbody]
     }
 
     enum Sort {
