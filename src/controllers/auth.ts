@@ -8,10 +8,12 @@ import { Request } from 'express'
 import { 
     refreshExistingTokenPair, 
     createTokenPairOnAuth, 
-    verifyRefreshToken 
+    verifyRefreshToken, 
+    verifyAccessToken
 } from "../utils/auth/token"
 import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
 import redis from "../configs/redis"
+import { RequestError } from "../utils/errors/RequestError"
 
 
 interface LoginRequest {
@@ -194,4 +196,14 @@ export const resetPassword = asyncWrapper(async (req: Request<{},{},ResetPasswor
         .where('id', user)
         .update({ password: hash })
     res.status(200).json({ message: 'Password successfully changed' })
+})
+
+export const getMyAccount = asyncWrapper(async (req, res) => {
+    const { authorization } = req.headers
+    if(!authorization) throw new AuthError('TOKEN_INVALID')
+    const token = authorization.split(' ')[1];
+    const user = verifyAccessToken(token, { error: 'EXPRESS'})
+    const result = await knex('users').where('id', user.id).select('email').first()
+    if(!result) throw new RequestError('REQUEST_FAILED')
+    res.status(200).json(result)
 })
