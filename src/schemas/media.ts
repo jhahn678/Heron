@@ -20,6 +20,7 @@ export const typeDef =  gql`
         id: Int!
         user: User
         url: String!
+        key: String!
         created_at: DateTime!
     }
 
@@ -27,6 +28,7 @@ export const typeDef =  gql`
         id: Int!
         user: User
         url: String!
+        key: String!
         created_at: DateTime!
         catch: Catch
     }
@@ -35,6 +37,7 @@ export const typeDef =  gql`
         id: Int!
         user: User
         url: String!
+        key: String!
         created_at: DateTime!
         location: Location
     }
@@ -43,6 +46,7 @@ export const typeDef =  gql`
         id: Int!
         user: User
         url: String!
+        key: String!
         created_at: DateTime!
         waterbody: Waterbody
     }
