@@ -198,7 +198,7 @@ export const resolver: Resolvers = {
             }
 
             const result = { ...res[0], total_favorites: 0 };
-            if(coordinates) result.geom = { type: 'Point', coordinates }
+            if(coordinates) result.geom = { type: "Point", coordinates }
             return result;
         },
         // needs tested
