@@ -1,9 +1,10 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex from '../configs/knex'
-import { Resolvers } from '../types/graphql'
-import { CatchStatistics, IPendingContact } from '../types/User'
+import { Resolvers, ReviewSort } from '../types/graphql'
+import { CatchStatisticsRes, IPendingContact, UserDetailsUpdate } from '../types/User'
 import { RequestError } from '../utils/errors/RequestError'
-import { removeUndefined } from '../utils/validations/removeUndefined'
+import { UploadError } from '../utils/errors/UploadError'
+import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
 export const typeDef =  gql`
     type User { 
@@ -15,11 +16,15 @@ export const typeDef =  gql`
         avatar: String
         bio: String
         location: String
+        city: String
+        state: String
         contacts: [User]
         total_contacts: Int
         pending_contacts: [PendingContact]
         locations: [Location]
         total_locations: Int
+        saved_locations: [Location]
+        total_saved_locations: Int
         catches(
             date: DateRange, 
             species: [String!], 
@@ -32,19 +37,29 @@ export const typeDef =  gql`
         total_catches: Int
         catch_statistics: CatchStatistics
         saved_waterbodies: [Waterbody]
+        total_saved_waterbodies: Int
+        waterbody_reviews(limit: Int, offset: Int, sort: ReviewSort): [WaterbodyReview]
+        total_reviews: Int
+        media(limit: Int, offset: Int): [AnyMedia]
+        total_media: Int
         created_at: DateTime
         updated_at: DateTime
     }
 
     type CatchStatistics {
         total_catches: Int!
+        largest_catch: Catch
         total_species: Int!
         top_species: String
-        all_species: [String]
+        species_counts: [SpeciesCount!]
         total_waterbodies: Int!
-        all_waterbodies: [Waterbody!]
         top_waterbody: Waterbody
-        largest_catch: Catch
+        waterbody_counts: [WaterbodyCount!]
+    }
+
+    type WaterbodyCount {
+        waterbody: Waterbody!
+        count: Int!
     }
 
     type Query {
@@ -55,7 +70,7 @@ export const typeDef =  gql`
 
     type Mutation {
         updateUserDetails(details: UserDetails!): User
-        updateUserAvatar(url: String!): User
+        updateUserAvatar(avatar: MediaInput): String
         deleteContact(id: Int!): Int
     }
 
@@ -63,7 +78,8 @@ export const typeDef =  gql`
         firstname: String
         lastname: String
         bio: String
-        location: String
+        city: String
+        state: String
     }
 
     input DateRange{
@@ -75,7 +91,6 @@ export const typeDef =  gql`
         min: PositiveInt
         max: PositiveInt
     }
-
 `
 
 
@@ -116,19 +131,39 @@ export const resolver: Resolvers = {
     Mutation: {
         updateUserDetails: async (_, { details }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            if(typeof details === undefined) throw new RequestError('REQUEST_UNDEFINED')
-            const update = removeUndefined(details)
-            const res = await knex('users').where({ id: auth }).update(update).returning('*')
-            if(res.length === 0) throw new RequestError('TRANSACTION_NOT_FOUND')
-            return res[0];
+            const update: UserDetailsUpdate = {};
+            const { firstname, lastname, city, state, bio } = details;
+            if(firstname) update.firstname = firstname;
+            if(lastname) update.lastname = lastname;
+            if(state) update.state = state;
+            if(city) update.city = city;
+            if(bio) update.bio = bio;
+            const [result] = await knex('users')
+                .where({ id: auth })
+                .update({ ...update })
+                .returning('*')
+            if(!result) throw new RequestError('TRANSACTION_NOT_FOUND')
+            return result;
         },
-        updateUserAvatar: async (_, { url }, { auth }) => {
+        updateUserAvatar: async (_, { avatar }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const res = await knex('users').where({ id: auth }).update({ avatar: url }).returning('*')
-            return res[0]; 
+            if(!avatar){
+                await knex('userAvatars').where('user', auth).del()
+                await knex('users').where('id', auth).update('avatar', null)
+                return null;
+            }
+            if(!validateMediaUrl(avatar.url)) throw new UploadError('INVALID_URL')
+            const [{ url }] = await knex('userAvatars')
+                .insert({ ...avatar, user: auth })
+                .onConflict('user')
+                .merge(['key', 'url'])
+                .returning('url')
+            if(!url) throw new RequestError('TRANSACTION_NOT_FOUND')
+            await knex('users').where({ id: auth }).update({ avatar: url })
+            return url;
         },
         deleteContact: async (_, { id }, { auth }) => {
-            if(auth !== id) throw new AuthenticationError('Unauthorized')
+            if(!auth) throw new AuthenticationError('Authentication Required')
             const user_one = id < auth ? id : auth;
             const user_two = id < auth ? auth : id;
             const res = await knex('contacts')
@@ -139,7 +174,18 @@ export const resolver: Resolvers = {
         },
     },
     User: {
-        fullname: ({ firstname, lastname }) => `${firstname} ${lastname}`,
+        fullname: ({ firstname, lastname }) => {
+            if(firstname && lastname) return `${firstname} ${lastname}`
+            if(firstname) return firstname;
+            if(lastname) return lastname;
+            return null;
+        },
+        location: ({ city, state }) => {    
+            if(city && state) return `${city}, ${state}`;
+            if(city) return city;
+            if(state) return state;
+            return null
+        },
         contacts: async ({ id }) => {
             const contacts = await knex('contacts')
                 .select('users.*')
@@ -162,6 +208,7 @@ export const resolver: Resolvers = {
         },
         catches: async ({ id }, { date, waterbody, species, length, weight, limit, offset }) => {
             const query = knex('catches')
+                .select('*', knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"))
                 .where('user', id)
                 .orderBy('created_at', 'desc')
             if(date?.min) query.where('created_at', '>=', date.min)
@@ -197,67 +244,160 @@ export const resolver: Resolvers = {
             if(typeof count === 'string') return parseInt(count);
             return count;
         },
+        saved_locations: async ({ id }) => {
+            const results = await knex('locations')
+                .whereRaw(` "id" in (
+	                select "location" 
+                    from saved_locations 
+                    where "user" = ?
+                )`, [id])
+            return results;
+        },
+        total_saved_locations: async ({ id }) => {
+            const [{ count }] = await knex('savedLocations').where('user', id).count()
+            if(typeof count === 'string') return parseInt(count);
+            return count;
+        },
         total_catches: async ({ id }) => {
-            const res = await knex('catches').where('user', id).count()
-            const { count } = res[0];
+            const [{ count }] = await knex('catches').where('user', id).count()
             if(typeof count === 'string') return parseInt(count);
             return count;
         },
         saved_waterbodies: async ({ id }) => {
-            const res = await knex('savedWaterbodies').where({ user: id })
-            const ids = res.map(x => x.waterbody)
-            if(ids.length === 0) return [];
-            return (await knex('waterbodies').whereIn('id', ids))
+            const results = await knex('waterbodies')
+                .whereRaw(` "id" in (
+	                select "waterbody" 
+                    from saved_waterbodies
+                    where "user" = ?
+                `,[id])
+            return results;
+        },
+        total_saved_waterbodies: async ({ id }) => {
+            const [{ count }] = await knex('savedWaterbodies').where('user', id).count()
+            if(typeof count === 'number') return count;
+            return parseInt(count)
         },
         catch_statistics: async ({ id }) => {
-            const [result] = await knex('catches')
-                .where('user', id)
-                .select(knex.raw(`
-                    count(*)::int as total_catches, 
-                    array_agg(distinct species) as all_species,
-                    count(distinct species)::int as total_species,
-                    count(distinct waterbody)::int as total_waterbodies,
-                    array_agg(distinct waterbody) as all_waterbodies,
-                    (
-                        select species from catches
-                        where "user" = ?
-                        group by species
-                        order by count(*) desc
-                        limit 1
-                    ) as top_species,
-                    (
-                        select waterbody from catches 
-                        where "user" = ? 
-                        group by waterbody 
-                        order by count(*) desc 
-                        limit 1
-                    ) as top_waterbody,
+            const { rows } = await knex.raw(`
+                select species_counts, waterbody_counts, total_catches, largest_catch from (
+                    select json_agg(spec) as species_counts,
                     (
                         select "id" from catches
                         where "user" = ?
                         and "length" IS NOT NULL
                         order by "length" desc
                         limit 1
-                    ) as largest_catch
-                `,[id, id, id])) as CatchStatistics[]
-            // console.log(result)
-            return result;
+                    ) as largest_catch,
+                    (
+                        select count(*) 
+                        from catches 
+                        where "user" = ?
+                    )::int as total_catches,
+                    1 as "row"
+                    from (
+                        select species, count(species)
+                        from catches
+                        where "user" = ?
+                        group by species
+                    ) as spec
+                ) q1
+                left join (
+                    select json_agg(wbs) as waterbody_counts, 1 as "row"
+                    from (
+                        select waterbody, count(waterbody)
+                        from catches
+                        where "user" = ?
+                        group by waterbody
+                    ) as wbs
+                ) q2
+                on q1.row = q2.row
+            `,[id, id, id, id])
+            const result = rows[0] as CatchStatisticsRes;
+            const { species_counts, waterbody_counts } = result;
+            return {
+                ...result,
+                top_species: species_counts ? species_counts[0].species : null,
+                total_species: species_counts ? species_counts.length : 0,
+                total_waterbodies: waterbody_counts ? waterbody_counts.length : 0
+            }
+        },
+        total_media: async ({ id }) => {
+            const { rows } = await knex.raw(`
+                select sum(count) as total from (
+                    select count(*) from catch_media where "user" = ?
+                    union all
+                    select count(*) from waterbody_media where "user" = ?
+                    union all
+                    select count(*) from location_media where "user" = ?
+                ) as media
+            `,[id, id, id])
+            const result = rows[0] as { total: number }
+            return result.total;
+        },
+        media: async ({ id }, { limit, offset }) => {
+            const { rows } = await knex.raw(`
+                select "id", "user", "key", "url", "created_at" 
+                from waterbody_media where "user" = ?
+                union all
+                select "id", "user", "key", "url", "created_at"
+                from catch_media where "user" = ?
+                union all
+                select "id", "user", "key", "url", "created_at" 
+                from location_media where "user" = ?
+                order by "created_at" desc offset ? limit ?
+            `, [id,id,id,(offset || 0),(limit || 24)])
+            return rows;
+        },
+        total_reviews: async ({ id }) => {
+            const [result] = await knex('waterbodyReviews')
+                .where('user', id)
+                .count()
+            const { count } = result;
+            if(typeof count === 'number') return count;
+            return parseInt(count)
+        },
+        waterbody_reviews: async ({ id }, { limit, offset, sort }) => {
+            const query = knex('waterbodyReviews')
+                .where('user', id)
+                .limit(limit || 16)
+                .offset(offset || 0)
+            switch(sort){
+                case ReviewSort.CreatedAtNewest:
+                    query.orderBy('created_at', 'desc')
+                    break;
+                case ReviewSort.RatingHighest:
+                    query.orderBy('rating', 'desc')
+                    break;
+                case ReviewSort.RatingLowest:
+                    query.orderBy('rating', 'asc')
+                    break;
+                case ReviewSort.CreatedAtOldest:
+                    query.orderBy('created_at', 'asc')
+                    break;
+                default:
+                    query.orderBy('created_at', 'desc')
+            }
+            const results = await query;
+            return results;
         }
     },
     CatchStatistics: {
-        all_waterbodies: async ({ all_waterbodies }) => {
-            if(!all_waterbodies) return null;
-            const result = await knex('waterbodies')
-                .whereIn('id', all_waterbodies)
-            return result;
-        },
-        top_waterbody: async ({ top_waterbody }) => {
-            const result = await knex('waterbodies').where('id', top_waterbody).first()
+        top_waterbody: async ({ waterbody_counts }) => {
+            if(!waterbody_counts) return null;
+            const id = waterbody_counts[0].waterbody
+            const result = await knex('waterbodies').where('id', id).first()
             return result;
         },
         largest_catch: async ({ largest_catch }) => {
+            if(!largest_catch) return null;
             const result = await knex('catches').where('id', largest_catch).first()
             return result;
+        }
+    },
+    WaterbodyCount: {
+        waterbody: async ({ waterbody }) => {
+            const result = await knex('waterbodies').where('id', waterbody)
+            return result[0];
         }
     }
 }
