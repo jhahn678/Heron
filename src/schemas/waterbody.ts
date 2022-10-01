@@ -20,7 +20,7 @@ export const typeDef =  gql`
         catches(offset: Int, limit: Int, sort: CatchSort): [Catch]
         total_catches: Int
         total_species: Int
-        all_species: [SpeciesCount]
+        all_species: [SpeciesCount!]
         most_caught_species: String
         locations(offset: Int, limit: Int): [Location]
         total_locations: Int
@@ -36,8 +36,8 @@ export const typeDef =  gql`
     }
 
     type SpeciesCount {
-        species: String
-        count: Int
+        species: String!
+        count: Int!
     }
 
     type RatingCounts {
@@ -249,27 +249,27 @@ export const resolver: Resolvers = {
             return count
         },
         reviews: async ({ id }, { offset, limit, sort }) => {
-            let sortField: keyof IWaterbodyReview = 'created_at';
-            let sortOrder: 'asc' | 'desc' = 'desc';
-            switch(sort){
-                case ReviewSort.CreatedAtNewest:
-                    sortField = 'created_at';
-                    sortOrder = 'desc'; break;
-                case ReviewSort.RatingHighest:
-                    sortField = 'rating';
-                    sortOrder = 'asc'; break;
-                case ReviewSort.RatingLowest:
-                    sortField = 'rating';
-                    sortOrder = 'asc'; break;
-                case ReviewSort.CreatedAtOldest:
-                    sortField = 'created_at';
-                    sortOrder = 'asc'; break;
-            }
-            const results = await knex('waterbodyReviews')
+            const query = knex('waterbodyReviews')
                 .where('waterbody', id)
-                .orderBy(sortField, sortOrder)
                 .offset(offset || 0)
                 .limit(limit || 10)
+            switch(sort){
+                case ReviewSort.CreatedAtNewest:
+                    query.orderBy('created_at', 'desc')
+                    break;
+                case ReviewSort.RatingHighest:
+                    query.orderBy('rating', 'desc')
+                    break;
+                case ReviewSort.RatingLowest:
+                    query.orderBy('rating', 'asc')
+                    break;
+                case ReviewSort.CreatedAtOldest:
+                    query.orderBy('created_at', 'asc')
+                    break;
+                default:
+                    query.orderBy('created_at', 'desc')
+            }
+            const results = await query;
             return results
         },
         total_reviews: async ({ id }) => {
