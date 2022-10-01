@@ -1,5 +1,5 @@
 import { ICatch } from "./Catch"
-import { Maybe, ResolversTypes, ResolverTypeWrapper } from "./graphql"
+import { Maybe, ResolverTypeWrapper } from "./graphql"
 import { IWaterbody } from "./Waterbody"
 
 export interface IUser {
@@ -9,7 +9,8 @@ export interface IUser {
     username: string,
     avatar: string,
     bio: string,
-    location: string
+    city: string,
+    state: string,
     email: string
     phone: number
     google_id: string
@@ -40,6 +41,21 @@ export interface IPendingContact {
     created_at: Date
 }
 
+
+export interface CatchStatisticsRes {
+    species_counts: {
+        species: string
+        count: number
+    }[] | null,
+    waterbody_counts: {
+        waterbody: ResolverTypeWrapper<IWaterbody>
+        count: number
+    }[] | null,
+    total_catches: number
+    largest_catch: Maybe<ResolverTypeWrapper<ICatch>>
+}
+
+
 export interface CatchStatistics {
     total_catches: number
     total_species: number
@@ -48,4 +64,13 @@ export interface CatchStatistics {
     top_species: Maybe<string>,
     top_waterbody: Maybe<ResolverTypeWrapper<IWaterbody>>
     largest_catch: Maybe<ResolverTypeWrapper<ICatch>>
+}
+
+
+export interface UserDetailsUpdate {
+    firstname?: string
+    lastname?: string
+    state?: string
+    city?: string
+    bio?: string
 }
