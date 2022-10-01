@@ -12,7 +12,7 @@ router.get('/username', controllers.checkUsernameAvailability)
 router.post('/token', controllers.issueNewAccessToken)
 router.post('/forgot-password', controllers.forgotPassword)
 router.post('/reset-password', controllers.resetPassword)
-
+router.get('/my-account', controllers.getMyAccount)
 
 export default router;
 
