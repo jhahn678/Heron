@@ -58,6 +58,7 @@ export const typeDef =  gql`
 
     enum LocationQuery {
         USER
+        USER_SAVED
         WATERBODY
     }
 
@@ -178,6 +179,11 @@ export const resolver: Resolvers = {
                         )`, [auth, auth])
                     }
                     break;
+                case LocationQuery.UserSaved:
+                    query.whereRaw(`"id" in (
+                        select "id" from saved_locations where "user" = ?
+                    )`,[id])
+                    break;
                 case LocationQuery.Waterbody:
                     query.where('waterbody', id)
                     query.andWhere('privacy', Privacy.Public)
@@ -265,7 +271,7 @@ export const resolver: Resolvers = {
             if(description) newLocation['description'] = description;
             if(hexcolor) newLocation['hexcolor'] = hexcolor;
 
-            try{    //@ts-ignore
+            try{ 
                 newLocation['geom'] = st.geomFromGeoJSON(turf.polygon(coordinates).geometry)
             }catch(err){
                 throw new RequestError('COORDS_INVALID')
@@ -329,7 +335,7 @@ export const resolver: Resolvers = {
 
             if(hexcolor) update['hexcolor'] = hexcolor
             if(coordinates){
-                try{ //@ts-ignore -- try/catch
+                try{
                     update['geom'] = st.geomFromGeoJSON(turf.polygon(coordinates).geometry)
                 }catch(err){
                     throw new RequestError('COORDS_INVALID')
@@ -388,14 +394,24 @@ export const resolver: Resolvers = {
             const deleted = await knex('locationFavorites')
                 .where({ location: id, user: auth })
                 .del()
-
             if(deleted === 1) return false;
 
             await knex('locationFavorites')
                 .insert({ user: auth, location: id })
-
             return true;
-        }
+        },
+        toggleSaveLocation: async (_, { id }, { auth }) => {
+            if (!auth) throw new AuthenticationError("Authentication Required");
+
+            const deleted = await knex('savedLocations')
+                .where({ location: id, user: auth })
+                .del()
+            if(deleted === 1) return false;
+
+            await knex('savedLocations')
+                .insert({ user: auth, location: id })
+            return true;
+        },
     },
     Location: {
         user: async ({ user }) => {
