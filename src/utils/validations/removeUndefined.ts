@@ -1,10 +1,9 @@
-//@ts-ignore
-export const removeUndefined = (obj) => {
-    const copy = { ...obj };
+type AnyObj = { [key: string]: any }
+
+export const removeUndefined = <T extends AnyObj>(obj: T) => {
+    const result: AnyObj = {};
     for(let x of Object.keys(obj)){
-        if(typeof obj[x] === 'undefined'){
-            delete copy[x];
-        }
+        if(obj[x] !== undefined) result[x] = obj[x]
     }
-    return copy;
+    return result;
 }
