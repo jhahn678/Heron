@@ -4,17 +4,21 @@ import { validateCoords } from "../utils/validations/coordinates";
 import knex, { st } from "../configs/knex";
 import { AutocompleteQueryError } from "../utils/errors/AutocompleteQueryError";
 import { validateAdminOne } from "../utils/validations/validateAdminOne";
+import { CoordinateError } from "../utils/errors/CoordinateError";
+
 
 interface AutocompleteQuery {
     /** Query value */
     value: string,
     /** Comma seperated longitude,latitude */
     lnglat?: string
+    /** @Default 8 */
+    limit?: number
 }
 
-export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res, next) => {
+export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res) => {
     
-    const { value, lnglat } = req.query;
+    const { value, lnglat, limit=8 } = req.query;
     if(!value) throw new AutocompleteQueryError('VALUE_REQUIRED')
     
     const query = knex('geoplaces')
@@ -49,7 +53,7 @@ export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},A
     }
     
     query.orderByRaw('rank desc')
-    query.limit(8)
+    query.limit(limit)
     
     const results = await query;
     res.status(200).json(results)
@@ -57,9 +61,9 @@ export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},A
 
 
 
-export const autocompleteWaterbodies = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res, next) => {
+export const autocompleteWaterbodies = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res) => {
     
-    const { value, lnglat } = req.query;
+    const { value, lnglat, limit=8 } = req.query;
     if(!value) throw new AutocompleteQueryError('VALUE_REQUIRED')
     
     const query = knex('waterbodies')
@@ -96,7 +100,7 @@ export const autocompleteWaterbodies = asyncWrapper(async (req: Request<{},{},{}
             }
             
             query.orderByRaw('rank desc')
-            query.limit(8)
+            query.limit(limit)
             
             const results = await query;
             res.status(200).json(results)
@@ -166,3 +170,23 @@ export const autocompleteWaterbodies = asyncWrapper(async (req: Request<{},{},{}
 
         res.status(200).json(sorted)
     })
+
+interface LngLatQuery {
+    /** Comma seperated longitude,latitude */
+    lnglat: string
+}
+
+export const nearestWaterbodies = asyncWrapper(async (req: Request<{},{},{},LngLatQuery>, res) => {
+    const { lnglat } = req.query;
+    if(!lnglat) throw new AutocompleteQueryError('LATLNG_NOT_PROVIDED')
+    const coords = lnglat.split(',').map(x => parseFloat(x))
+    if(!validateCoords(coords)) throw new CoordinateError('INVALID_COORDINATES')
+    const [lng, lat] = coords;
+    const point = st.transform(st.setSRID(st.point(lng, lat), 4326), 3857)
+    const results = await knex('waterbodies')
+        .select('id', 'name', 'classification', 'admin_one', 'admin_two', 'country', 'ccode', 'subregion')
+        .where(st.dwithin('simplified_geometries', point, 10000, false))
+        .orderByRaw('simplified_geometries <-> ?', [point])
+        .limit(4)
+    res.status(200).json(results)
+})
