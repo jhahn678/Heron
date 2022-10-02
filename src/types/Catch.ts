@@ -16,6 +16,7 @@ export interface ICatch {
     created_at: Date,
     updated_at: Date
     is_favorited?: boolean
+    total_favorites?: number
 } 
 
 export interface ICatchMedia {

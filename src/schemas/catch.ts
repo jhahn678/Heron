@@ -302,6 +302,12 @@ export const resolver: Resolvers = {
             const res = await knex('users').where({ id })
             return res[0];
         },
+        total_favorites: async ({ id, total_favorites }) => {
+            if(total_favorites !== undefined) return total_favorites;
+            const [{ count }] = await knex('catchFavorites').where('catch', id).count()
+            if(typeof count === 'number') return count;
+            return parseInt(count)
+        },
         is_favorited: async ({ id, is_favorited }, _, { auth }) => {
             if(is_favorited !== undefined) return is_favorited;
             if(!auth) return false;
