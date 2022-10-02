@@ -72,6 +72,7 @@ export const typeDef =  gql`
         USER
         WATERBODY
         COORDINATES
+        FOLLOWING
     }
 
     input NewCatch {
@@ -117,9 +118,8 @@ export const resolver: Resolvers = {
             return result;
         },
         //needs tested
-        catches: async (_, { id, type, offset, limit, coordinates, within, sort }) => {
-            const query = knex("catches").select(
-              "*",
+        catches: async (_, { id, type, offset, limit, coordinates, within, sort }, { auth }) => {
+            const query = knex("catches").select("*",
               knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
             );
             switch(type){
@@ -130,6 +130,14 @@ export const resolver: Resolvers = {
                 case CatchQuery.Waterbody:
                     if(!id) throw new CatchQueryError('ID_NOT_PROVIDED');
                     query.where('waterbody', id); 
+                    break;
+                case CatchQuery.Following:
+                    if(!auth) throw new AuthenticationError('Not Authenticated')
+                    query.whereIn("user", function(){
+                        this.select("following")
+                            .from('userFollowers')
+                            .where('user',auth)
+                    })
                     break;
                 case CatchQuery.Coordinates:
                     if(!coordinates) throw new CatchQueryError('COORDINATES_NOT_PROVIDED')
