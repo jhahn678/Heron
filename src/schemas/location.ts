@@ -12,6 +12,7 @@ import { DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 const { S3_BUCKET_NAME } = process.env;
 import * as turf from '@turf/helpers'
 import { LocationQueryError } from '../utils/errors/LocationQueryError'
+import { Point } from 'geojson'
 
 export const typeDef =  gql`
 
@@ -22,7 +23,7 @@ export const typeDef =  gql`
         description: String,
         user: User!
         waterbody: Waterbody
-        nearest_geoplace: String
+        nearest_place: String
         media: [LocationMedia]
         geom: Geometry
         hexcolor: String
@@ -121,26 +122,26 @@ export const resolver: Resolvers = {
                 knex.raw(`(
                     select count(*) from location_favorites 
                     where location_favorites.location = ?
-                    ) as total_favorites
-                `,[id])
+                ) as total_favorites`,[id])
               )
               .where("id", id)
               .andWhere("privacy", "=", Privacy.Public);
             if(auth){
                 query.orWhere('user', auth)
-                query.orWhereRaw(`privacy = 'friends' and "user" in (
-                    select user_one as "user" from contacts
-                    where "user_two" = ?
-                    union all
-                    select user_two as "user" from contacts
-                    where "user_one" = ?
-                )`,[auth, auth])
+                query.orWhereRaw(`
+                    privacy = 'friends' 
+                    and "user" in (
+                        select "following" 
+                        from user_followers
+                        where "user" = ?
+                    )
+                `,[auth])
                  query.select(
                    knex.raw(`( select exists (
                         select "user" from location_favorites 
                         where "user" = ? and location = ?)
                     ) as is_favorited`,[auth, id]),
-                   knex.raw(`(select exists(
+                   knex.raw(`( select exists (
                         select "user" from saved_locations 
                         where "user" = ? and location = ?)
                     ) as is_saved`, [auth, id])
@@ -161,22 +162,24 @@ export const resolver: Resolvers = {
               "*",
               knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
               knex.raw(`(
-                select count(*) from location_favorites 
+                select count(*) 
+                from location_favorites 
                 where location = ?
-                ) as total_favorites`, [id])
+            ) as total_favorites`, [id])
             );
             switch(type){
                 case LocationQuery.User:
                     query.where('user', id)
                     query.andWhere('privacy', Privacy.Public)
                     if(auth){
-                        query.orWhereRaw(`privacy = 'friends' and "user" in (
-                            select user_one as "user" from contacts
-                            where "user_two" = ?
-                            union all
-                            select user_two as "user" from contacts
-                            where "user_one" = ?
-                        )`, [auth, auth])
+                        query.orWhereRaw(`
+                            privacy = 'friends' 
+                            and "user" in (
+                                select "following" 
+                                from user_followers
+                                where "user" = ?
+                            )
+                        `,[auth])
                     }
                     break;
                 case LocationQuery.UserSaved:
@@ -188,17 +191,16 @@ export const resolver: Resolvers = {
                     query.where('waterbody', id)
                     query.andWhere('privacy', Privacy.Public)
                     if(auth){
-                        //The right way to do this may be to not show friend-only
-                        //locations via the waterbody page
-                        query.orWhereRaw(`privacy = 'friends' and "user" in (
-                            select user_one as "user" from contacts
-                            where "user_two" = ?
-                            union all
-                            select user_two as "user" from contacts
-                            where "user_one" = ?
-                        )`, [auth, auth])
+                        query.orWhereRaw(`
+                            privacy = 'friends' 
+                            and "user" in (
+                                select "following" 
+                                from user_followers
+                                where "user" = ?
+                            )
+                        `,[auth])
                     }
-                    break
+                    break;
             }
             switch (sort) {
               case LocationSort.CreatedAtNewest:
@@ -235,7 +237,6 @@ export const resolver: Resolvers = {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { privacy, coordinates, waterbody, media, title, description, hexcolor } = location;
-
             const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
 
             if(title) newLocation['title'] = title
@@ -244,19 +245,26 @@ export const resolver: Resolvers = {
 
             if(!validatePointCoordinates(coordinates)) throw new RequestError('COORDS_INVALID')
             const [lng, lat] = coordinates as [number, number];
-            newLocation['geom'] = st.setSRID(st.point(lng, lat), 4326)
+            newLocation['geom'] = st.transform(st.setSRID(st.point(lng, lat), 4326),3857)
 
-            const res = await knex('locations').insert(newLocation).returning('*')
-            if(res.length === 0) throw new RequestError('REQUEST_FAILED')
+            const [res] = await knex('locations').insert({
+                ...newLocation,
+                nearest_place: knex.raw(`(
+                    select "name" || ', ' || "admin_one"
+                    from geoplaces 
+                    order by geoplaces.geom <-> ? 
+                    limit 1
+                )`,[newLocation['geom']])
+            }, '*')
 
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
-                const uploads = valid.map(x => ({ user: auth, location: res[0].id, ...x }))
+                const uploads = valid.map(x => ({ user: auth, location: res.id, ...x }))
                 if(uploads.length === 0) throw new UploadError('INVALID_URL')
                 await knex('locationMedia').insert(uploads)
             }
 
-            return res[0];
+            return { ...res, geom: { type: "Point", coordinates } as Point };
         },
         // needs tested
         // Convert to transaction
@@ -264,30 +272,32 @@ export const resolver: Resolvers = {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
             const { privacy, coordinates, waterbody, media, title, description, hexcolor } = location;
-
             const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
 
             if(title) newLocation['title'] = title
             if(description) newLocation['description'] = description;
             if(hexcolor) newLocation['hexcolor'] = hexcolor;
+            const geom = turf.polygon(coordinates).geometry;
+            newLocation['geom'] = st.transform(st.geomFromGeoJSON(geom),3857)
 
-            try{ 
-                newLocation['geom'] = st.geomFromGeoJSON(turf.polygon(coordinates).geometry)
-            }catch(err){
-                throw new RequestError('COORDS_INVALID')
-            }
-
-            const res = await knex('locations').insert(newLocation).returning('*')
-            if(res.length === 0) throw new RequestError('REQUEST_FAILED')
+            const [res] = await knex('locations').insert({
+                ...newLocation,
+                nearest_place: knex.raw(`(
+                    select "name" || ', ' || "admin_one"
+                    from geoplaces 
+                    order by geoplaces.geom <-> ? 
+                    limit 1
+                )`,[newLocation['geom']])
+            }, '*')
             
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
-                const uploads = valid.map(x => ({ user: auth, location: res[0].id, ...x }))
+                const uploads = valid.map(x => ({ user: auth, location: res.id, ...x }))
                 if(uploads.length === 0) throw new UploadError('INVALID_URL')
                 await knex('locationMedia').insert(uploads)
             }
 
-            return res[0];
+            return  { ...res, geom }
         },
         // needs tested
         updateLocationDetails: async (_, { id, details }, { auth }) => {
@@ -300,10 +310,11 @@ export const resolver: Resolvers = {
             if(description) update['description'] = description;
             if(title) update['title'] = title;
 
-            const res = await knex('locations').where({ id, user: auth }).update(update).returning('*')
-            if(res.length === 0) throw new RequestError('REQUEST_FAILED')
+            const [res] = await knex('locations')
+                .where({ id, user: auth })
+                .update(update, '*')
 
-            return res[0];
+            return res;
         },
         // needs tested
         updateGeojsonPoint: async (_, { id, point }, { auth }) => {
@@ -321,10 +332,10 @@ export const resolver: Resolvers = {
                 }
             }
 
-            const res = await knex('locations').where({ id, user: auth }).update(update).returning('*')
-            if(res.length === 0) throw new RequestError('REQUEST_FAILED')
-
-            return res[0];
+            const [res] = await knex('locations')
+                .where({ id, user: auth })
+                .update(update, '*')
+            return res;
         },
         // needs tested
         updateGeojsonPolygon: async (_, { id, polygon }, { auth }) => {
@@ -342,10 +353,10 @@ export const resolver: Resolvers = {
                 }
             }
 
-            const res = await knex('locations').where({ id, user: auth }).update(update).returning('*')
-            if(res.length === 0) throw new RequestError('REQUEST_FAILED')
-
-            return res[0];
+            const [res] = await knex('locations')
+                .where({ id, user: auth })
+                .update(update, '*')
+            return res;
         },
         // needs tested
         addLocationMedia: async (_, { id, media }, { auth }) => {
@@ -355,9 +366,7 @@ export const resolver: Resolvers = {
             const uploads = valid.map(x => ({ user: auth, location: id, ...x }))
             if(uploads.length === 0) throw new UploadError('INVALID_URL')
             
-            const res = await knex('locationMedia').insert(uploads).returning('*')
-            if(res.length === 0) throw new RequestError('REQUEST_FAILED')
-            return res;
+            return (await knex('locationMedia').insert(uploads,'*'))
         },
         // needs tested
         removeLocationMedia: async (_, { id }, { auth }) => {
@@ -415,8 +424,14 @@ export const resolver: Resolvers = {
     },
     Location: {
         user: async ({ user }) => {
-            const res = await knex('users').where({ id: user })
-            return res[0];
+            const [res] = await knex('users').where({ id: user })
+            return res;
+        },
+        total_favorites: async ({ id, total_favorites }) => {
+            if(total_favorites !== undefined) return total_favorites;
+            const [{ count }] = await knex('locationFavorites').where('location', id).count()
+            if(typeof count === 'number') return count;
+            return parseInt(count);
         },
         is_saved: async ({ id, is_saved }, _, { auth }) => {
             if(is_saved !== undefined) return is_saved;
@@ -432,20 +447,11 @@ export const resolver: Resolvers = {
             if(res.length > 0) return true;
             return false;
         },
-        nearest_geoplace: async ({ geom }) => {
-            const result = await knex.raw(`
-                select "name", "admin_one" from geoplaces where "fcode" = 'PPL'
-                order by geom <-> st_transform(st_geomfromgeojson(?), 3857)
-                limit 1
-            `, [geom])
-            return `${result.rows[0].name}, ${result.rows[0].admin_one}`
-        },
         waterbody: async ({ waterbody: id }) => {
-            const result = await knex('waterbodies').where({ id }).first()
-            return result;
+            return (await knex('waterbodies').where({ id }).first())
+
         },
         media: async ({ id }) => {
-            if(id)
             return (await knex('locationMedia').where({ location: id }))
         }
     }

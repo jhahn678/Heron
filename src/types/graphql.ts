@@ -247,6 +247,7 @@ export type CatchMedia = {
 
 export enum CatchQuery {
   Coordinates = 'COORDINATES',
+  Following = 'FOLLOWING',
   User = 'USER',
   Waterbody = 'WATERBODY'
 }
@@ -305,7 +306,7 @@ export type Location = {
   is_favorited?: Maybe<Scalars['Boolean']>;
   is_saved?: Maybe<Scalars['Boolean']>;
   media?: Maybe<Array<Maybe<LocationMedia>>>;
-  nearest_geoplace?: Maybe<Scalars['String']>;
+  nearest_place?: Maybe<Scalars['String']>;
   privacy: Privacy;
   title?: Maybe<Scalars['String']>;
   total_favorites?: Maybe<Scalars['Int']>;
@@ -1361,7 +1362,7 @@ export type LocationResolvers<ContextType = Context, ParentType extends Resolver
   is_favorited?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   is_saved?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType>;
-  nearest_geoplace?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  nearest_place?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   privacy?: Resolver<ResolversTypes['Privacy'], ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   total_favorites?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
