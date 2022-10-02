@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { IUser, IPendingContact } from './User';
+import { IUser } from './User';
 import { ICatch, ICatchMedia } from './Catch';
 import { ILocation, ILocationMedia } from './Location';
 import { IWaterbody, IWaterbodyMedia, IWaterbodyReview } from './Waterbody';
@@ -356,7 +356,6 @@ export enum MediaType {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  acceptPendingContact?: Maybe<PendingContact>;
   addCatchMedia?: Maybe<Array<Maybe<CatchMedia>>>;
   addLocationMedia?: Maybe<Array<Maybe<LocationMedia>>>;
   addWaterbodyMedia?: Maybe<Array<Maybe<WaterbodyMedia>>>;
@@ -364,20 +363,18 @@ export type Mutation = {
   createCatch?: Maybe<Catch>;
   createLocationPoint?: Maybe<Location>;
   createLocationPolygon?: Maybe<Location>;
-  createPendingContact?: Maybe<PendingContact>;
   deleteCatch?: Maybe<Catch>;
-  deleteContact?: Maybe<Scalars['Int']>;
   deleteLocation?: Maybe<Location>;
-  deletePendingContact?: Maybe<PendingContact>;
   deleteWaterbodyReview?: Maybe<Scalars['Int']>;
   editWaterbodyReview?: Maybe<WaterbodyReview>;
-  rejectPendingContact?: Maybe<PendingContact>;
+  followUser?: Maybe<Scalars['Int']>;
   removeCatchMedia?: Maybe<CatchMedia>;
   removeLocationMedia?: Maybe<LocationMedia>;
   toggleFavoriteCatch?: Maybe<Scalars['Boolean']>;
   toggleFavoriteLocation?: Maybe<Scalars['Boolean']>;
   toggleSaveLocation?: Maybe<Scalars['Boolean']>;
   toggleSaveWaterbody?: Maybe<Scalars['Boolean']>;
+  unfollowUser?: Maybe<Scalars['Int']>;
   updateCatchDetails?: Maybe<Catch>;
   updateCatchLocation?: Maybe<Catch>;
   updateGeojsonPoint?: Maybe<Location>;
@@ -385,11 +382,6 @@ export type Mutation = {
   updateLocationDetails?: Maybe<Location>;
   updateUserAvatar?: Maybe<Scalars['String']>;
   updateUserDetails?: Maybe<User>;
-};
-
-
-export type MutationAcceptPendingContactArgs = {
-  id: Scalars['Int'];
 };
 
 
@@ -431,27 +423,12 @@ export type MutationCreateLocationPolygonArgs = {
 };
 
 
-export type MutationCreatePendingContactArgs = {
-  id: Scalars['Int'];
-};
-
-
 export type MutationDeleteCatchArgs = {
   id: Scalars['Int'];
 };
 
 
-export type MutationDeleteContactArgs = {
-  id: Scalars['Int'];
-};
-
-
 export type MutationDeleteLocationArgs = {
-  id: Scalars['Int'];
-};
-
-
-export type MutationDeletePendingContactArgs = {
   id: Scalars['Int'];
 };
 
@@ -466,7 +443,7 @@ export type MutationEditWaterbodyReviewArgs = {
 };
 
 
-export type MutationRejectPendingContactArgs = {
+export type MutationFollowUserArgs = {
   id: Scalars['Int'];
 };
 
@@ -497,6 +474,11 @@ export type MutationToggleSaveLocationArgs = {
 
 
 export type MutationToggleSaveWaterbodyArgs = {
+  id: Scalars['Int'];
+};
+
+
+export type MutationUnfollowUserArgs = {
   id: Scalars['Int'];
 };
 
@@ -576,17 +558,6 @@ export type NewReviewInput = {
   rating: Scalars['Float'];
   text: Scalars['String'];
   waterbody: Scalars['Int'];
-};
-
-export type PendingContact = {
-  __typename?: 'PendingContact';
-  sent_at?: Maybe<Scalars['DateTime']>;
-  status?: Maybe<Status>;
-  user: User;
-};
-
-export type PendingContactInput = {
-  user: Scalars['ID'];
 };
 
 export enum Privacy {
@@ -726,39 +697,37 @@ export type SpeciesCount = {
   species: Scalars['String'];
 };
 
-export enum Status {
-  From = 'FROM',
-  To = 'TO'
-}
-
 export type User = {
   __typename?: 'User';
+  am_following: Scalars['Boolean'];
   avatar?: Maybe<Scalars['String']>;
   bio?: Maybe<Scalars['String']>;
   catch_statistics?: Maybe<CatchStatistics>;
   catches?: Maybe<Array<Maybe<Catch>>>;
   city?: Maybe<Scalars['String']>;
-  contacts?: Maybe<Array<Maybe<User>>>;
-  created_at?: Maybe<Scalars['DateTime']>;
+  created_at: Scalars['DateTime'];
   firstname?: Maybe<Scalars['String']>;
+  followers?: Maybe<Array<Maybe<User>>>;
+  following?: Maybe<Array<Maybe<User>>>;
+  follows_me: Scalars['Boolean'];
   fullname?: Maybe<Scalars['String']>;
   id: Scalars['Int'];
   lastname?: Maybe<Scalars['String']>;
   location?: Maybe<Scalars['String']>;
   locations?: Maybe<Array<Maybe<Location>>>;
   media?: Maybe<Array<Maybe<AnyMedia>>>;
-  pending_contacts?: Maybe<Array<Maybe<PendingContact>>>;
   saved_locations?: Maybe<Array<Maybe<Location>>>;
   saved_waterbodies?: Maybe<Array<Maybe<Waterbody>>>;
   state?: Maybe<Scalars['String']>;
-  total_catches?: Maybe<Scalars['Int']>;
-  total_contacts?: Maybe<Scalars['Int']>;
-  total_locations?: Maybe<Scalars['Int']>;
-  total_media?: Maybe<Scalars['Int']>;
-  total_reviews?: Maybe<Scalars['Int']>;
-  total_saved_locations?: Maybe<Scalars['Int']>;
-  total_saved_waterbodies?: Maybe<Scalars['Int']>;
-  updated_at?: Maybe<Scalars['DateTime']>;
+  total_catches: Scalars['Int'];
+  total_followers: Scalars['Int'];
+  total_following: Scalars['Int'];
+  total_locations: Scalars['Int'];
+  total_media: Scalars['Int'];
+  total_reviews: Scalars['Int'];
+  total_saved_locations: Scalars['Int'];
+  total_saved_waterbodies: Scalars['Int'];
+  updated_at: Scalars['DateTime'];
   username: Scalars['String'];
   waterbody_reviews?: Maybe<Array<Maybe<WaterbodyReview>>>;
 };
@@ -772,6 +741,18 @@ export type UserCatchesArgs = {
   species?: InputMaybe<Array<Scalars['String']>>;
   waterbody?: InputMaybe<Array<Scalars['Int']>>;
   weight?: InputMaybe<Range>;
+};
+
+
+export type UserFollowersArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type UserFollowingArgs = {
+  limit?: InputMaybe<Scalars['Int']>;
+  offset?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -988,7 +969,6 @@ export type ResolversTypes = ResolversObject<{
   HexColorCode: ResolverTypeWrapper<Scalars['HexColorCode']>;
   Hexadecimal: ResolverTypeWrapper<Scalars['Hexadecimal']>;
   IBAN: ResolverTypeWrapper<Scalars['IBAN']>;
-  ID: ResolverTypeWrapper<Scalars['ID']>;
   IPv4: ResolverTypeWrapper<Scalars['IPv4']>;
   IPv6: ResolverTypeWrapper<Scalars['IPv6']>;
   ISBN: ResolverTypeWrapper<Scalars['ISBN']>;
@@ -1029,8 +1009,6 @@ export type ResolversTypes = ResolversObject<{
   NonPositiveFloat: ResolverTypeWrapper<Scalars['NonPositiveFloat']>;
   NonPositiveInt: ResolverTypeWrapper<Scalars['NonPositiveInt']>;
   ObjectID: ResolverTypeWrapper<Scalars['ObjectID']>;
-  PendingContact: ResolverTypeWrapper<IPendingContact>;
-  PendingContactInput: PendingContactInput;
   PhoneNumber: ResolverTypeWrapper<Scalars['PhoneNumber']>;
   Point: ResolverTypeWrapper<Scalars['Point']>;
   Polygon: ResolverTypeWrapper<Scalars['Polygon']>;
@@ -1051,7 +1029,6 @@ export type ResolversTypes = ResolversObject<{
   SafeInt: ResolverTypeWrapper<Scalars['SafeInt']>;
   Sort: Sort;
   SpeciesCount: ResolverTypeWrapper<SpeciesCount>;
-  Status: Status;
   String: ResolverTypeWrapper<Scalars['String']>;
   Time: ResolverTypeWrapper<Scalars['Time']>;
   TimeZone: ResolverTypeWrapper<Scalars['TimeZone']>;
@@ -1103,7 +1080,6 @@ export type ResolversParentTypes = ResolversObject<{
   HexColorCode: Scalars['HexColorCode'];
   Hexadecimal: Scalars['Hexadecimal'];
   IBAN: Scalars['IBAN'];
-  ID: Scalars['ID'];
   IPv4: Scalars['IPv4'];
   IPv6: Scalars['IPv6'];
   ISBN: Scalars['ISBN'];
@@ -1141,8 +1117,6 @@ export type ResolversParentTypes = ResolversObject<{
   NonPositiveFloat: Scalars['NonPositiveFloat'];
   NonPositiveInt: Scalars['NonPositiveInt'];
   ObjectID: Scalars['ObjectID'];
-  PendingContact: IPendingContact;
-  PendingContactInput: PendingContactInput;
   PhoneNumber: Scalars['PhoneNumber'];
   Point: Scalars['Point'];
   Polygon: Scalars['Polygon'];
@@ -1431,7 +1405,6 @@ export interface MultiPolygonScalarConfig extends GraphQLScalarTypeConfig<Resolv
 }
 
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
-  acceptPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationAcceptPendingContactArgs, 'id'>>;
   addCatchMedia?: Resolver<Maybe<Array<Maybe<ResolversTypes['CatchMedia']>>>, ParentType, ContextType, RequireFields<MutationAddCatchMediaArgs, 'id' | 'media'>>;
   addLocationMedia?: Resolver<Maybe<Array<Maybe<ResolversTypes['LocationMedia']>>>, ParentType, ContextType, RequireFields<MutationAddLocationMediaArgs, 'id' | 'media'>>;
   addWaterbodyMedia?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyMedia']>>>, ParentType, ContextType, RequireFields<MutationAddWaterbodyMediaArgs, 'id' | 'media'>>;
@@ -1439,20 +1412,18 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   createCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationCreateCatchArgs, 'newCatch'>>;
   createLocationPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationCreateLocationPointArgs, 'location'>>;
   createLocationPolygon?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationCreateLocationPolygonArgs, 'location'>>;
-  createPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationCreatePendingContactArgs, 'id'>>;
   deleteCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationDeleteCatchArgs, 'id'>>;
-  deleteContact?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationDeleteContactArgs, 'id'>>;
   deleteLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationDeleteLocationArgs, 'id'>>;
-  deletePendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationDeletePendingContactArgs, 'id'>>;
   deleteWaterbodyReview?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationDeleteWaterbodyReviewArgs, 'id'>>;
   editWaterbodyReview?: Resolver<Maybe<ResolversTypes['WaterbodyReview']>, ParentType, ContextType, RequireFields<MutationEditWaterbodyReviewArgs, 'input'>>;
-  rejectPendingContact?: Resolver<Maybe<ResolversTypes['PendingContact']>, ParentType, ContextType, RequireFields<MutationRejectPendingContactArgs, 'id'>>;
+  followUser?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationFollowUserArgs, 'id'>>;
   removeCatchMedia?: Resolver<Maybe<ResolversTypes['CatchMedia']>, ParentType, ContextType, RequireFields<MutationRemoveCatchMediaArgs, 'id'>>;
   removeLocationMedia?: Resolver<Maybe<ResolversTypes['LocationMedia']>, ParentType, ContextType, RequireFields<MutationRemoveLocationMediaArgs, 'id'>>;
   toggleFavoriteCatch?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleFavoriteCatchArgs, 'id'>>;
   toggleFavoriteLocation?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleFavoriteLocationArgs, 'id'>>;
   toggleSaveLocation?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveLocationArgs, 'id'>>;
   toggleSaveWaterbody?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveWaterbodyArgs, 'id'>>;
+  unfollowUser?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationUnfollowUserArgs, 'id'>>;
   updateCatchDetails?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchDetailsArgs, 'details' | 'id'>>;
   updateCatchLocation?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchLocationArgs, 'coords' | 'id'>>;
   updateGeojsonPoint?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateGeojsonPointArgs, 'id' | 'point'>>;
@@ -1493,13 +1464,6 @@ export interface NonPositiveIntScalarConfig extends GraphQLScalarTypeConfig<Reso
 export interface ObjectIdScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['ObjectID'], any> {
   name: 'ObjectID';
 }
-
-export type PendingContactResolvers<ContextType = Context, ParentType extends ResolversParentTypes['PendingContact'] = ResolversParentTypes['PendingContact']> = ResolversObject<{
-  sent_at?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  status?: Resolver<Maybe<ResolversTypes['Status']>, ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
 
 export interface PhoneNumberScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['PhoneNumber'], any> {
   name: 'PhoneNumber';
@@ -1607,32 +1571,35 @@ export interface UnsignedIntScalarConfig extends GraphQLScalarTypeConfig<Resolve
 }
 
 export type UserResolvers<ContextType = Context, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
+  am_following?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   avatar?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   bio?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   catch_statistics?: Resolver<Maybe<ResolversTypes['CatchStatistics']>, ParentType, ContextType>;
   catches?: Resolver<Maybe<Array<Maybe<ResolversTypes['Catch']>>>, ParentType, ContextType, Partial<UserCatchesArgs>>;
   city?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  contacts?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
-  created_at?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  created_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   firstname?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  followers?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<UserFollowersArgs>>;
+  following?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType, Partial<UserFollowingArgs>>;
+  follows_me?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   fullname?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   lastname?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   location?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType>;
   media?: Resolver<Maybe<Array<Maybe<ResolversTypes['AnyMedia']>>>, ParentType, ContextType, Partial<UserMediaArgs>>;
-  pending_contacts?: Resolver<Maybe<Array<Maybe<ResolversTypes['PendingContact']>>>, ParentType, ContextType>;
   saved_locations?: Resolver<Maybe<Array<Maybe<ResolversTypes['Location']>>>, ParentType, ContextType>;
   saved_waterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType>;
   state?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  total_catches?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  total_contacts?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  total_locations?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  total_media?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  total_reviews?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  total_saved_locations?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  total_saved_waterbodies?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  updated_at?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  total_catches?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_followers?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_following?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_locations?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_media?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_reviews?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_saved_locations?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  total_saved_waterbodies?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updated_at?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   waterbody_reviews?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyReview']>>>, ParentType, ContextType, Partial<UserWaterbody_ReviewsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1755,7 +1722,6 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   NonPositiveFloat?: GraphQLScalarType;
   NonPositiveInt?: GraphQLScalarType;
   ObjectID?: GraphQLScalarType;
-  PendingContact?: PendingContactResolvers<ContextType>;
   PhoneNumber?: GraphQLScalarType;
   Point?: GraphQLScalarType;
   Polygon?: GraphQLScalarType;

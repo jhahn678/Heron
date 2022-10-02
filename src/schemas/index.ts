@@ -3,10 +3,6 @@ import {
     typeDef as userTypeDef
 } from './user'
 import {
-    resolver as pendingContactResolver,
-    typeDef as pendingContactTypeDef
-} from './pendingContact'
-import {
     typeDef as mediaTypeDef,
     resolver as mediaResolver
 } from './media'
@@ -44,7 +40,6 @@ const typesArray = [
     constraintDirectiveTypeDefs,
     enumTypeDef,
     userTypeDef,
-    pendingContactTypeDef,
     mediaTypeDef,
     catchTypeDef,
     locationTypeDef,
@@ -56,7 +51,6 @@ const typesArray = [
 const resolversArray = [
     enumResolver,
     userResolver,
-    pendingContactResolver,
     catchResolver,
     waterbodyResolver,
     locationResolver,

@@ -7,7 +7,6 @@ generates:
       useIndexSignature: true
       mappers:
         User: ./User#IUser
-        PendingContact: './User#IPendingContact'
         Catch: ./Catch#ICatch
         CatchMedia: ./Catch#ICatchMedia
         Location: ./Location#ILocation

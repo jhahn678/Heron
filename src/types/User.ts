@@ -29,16 +29,14 @@ export interface UserAvatar {
     created_at: Date
 }
 
+export interface IUserFollowers {
+    user: number
+    following: number
+}
+
 export interface IContact {
     user_one: number,
     user_two: number
-}
-
-
-export interface IPendingContact {
-    user_sending: number,
-    user_recipient: number,
-    created_at: Date
 }
 
 

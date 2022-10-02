@@ -1,7 +1,7 @@
-import { AuthenticationError, gql } from 'apollo-server-express'
 import knex from '../configs/knex'
+import { AuthenticationError, gql } from 'apollo-server-express'
 import { Resolvers, ReviewSort } from '../types/graphql'
-import { CatchStatisticsRes, IPendingContact, UserDetailsUpdate } from '../types/User'
+import { CatchStatisticsRes, UserDetailsUpdate } from '../types/User'
 import { RequestError } from '../utils/errors/RequestError'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
@@ -18,13 +18,16 @@ export const typeDef =  gql`
         location: String
         city: String
         state: String
-        contacts: [User]
-        total_contacts: Int
-        pending_contacts: [PendingContact]
+        am_following: Boolean!
+        follows_me: Boolean!
+        following(limit: Int, offset: Int): [User]
+        total_following: Int!
+        followers(limit: Int, offset: Int): [User]
+        total_followers: Int!
         locations: [Location]
-        total_locations: Int
+        total_locations: Int!
         saved_locations: [Location]
-        total_saved_locations: Int
+        total_saved_locations: Int!
         catches(
             date: DateRange, 
             species: [String!], 
@@ -34,16 +37,16 @@ export const typeDef =  gql`
             limit: Int
             offset: Int
         ): [Catch]
-        total_catches: Int
+        total_catches: Int!
         catch_statistics: CatchStatistics
         saved_waterbodies: [Waterbody]
-        total_saved_waterbodies: Int
+        total_saved_waterbodies: Int!
         waterbody_reviews(limit: Int, offset: Int, sort: ReviewSort): [WaterbodyReview]
-        total_reviews: Int
+        total_reviews: Int!
         media(limit: Int, offset: Int): [AnyMedia]
-        total_media: Int
-        created_at: DateTime
-        updated_at: DateTime
+        total_media: Int!
+        created_at: DateTime!
+        updated_at: DateTime!
     }
 
     type CatchStatistics {
@@ -71,7 +74,8 @@ export const typeDef =  gql`
     type Mutation {
         updateUserDetails(details: UserDetails!): User
         updateUserAvatar(avatar: MediaInput): String
-        deleteContact(id: Int!): Int
+        followUser(id: Int!): Int
+        unfollowUser(id: Int!): Int
     }
 
     input UserDetails {
@@ -109,22 +113,14 @@ export const resolver: Resolvers = {
             if(!auth) throw new AuthenticationError('Authentication Required')
             const results = await knex('catches')
                 .select('*', knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"))
-                .whereIn('user', function(){
-                    this.from('contacts')  
-                        .select('user_one as user')
-                        .join('users', 'contacts.user_one', '=', 'users.id')
-                        .where('contacts.user_two', '=', auth)
-                        .unionAll(function() {
-                            this.from('contacts')
-                                .select('user_two as user')
-                                .join('users', 'contacts.user_two', '=', 'users.id')
-                                .where('contacts.user_one', '=', auth)
-                        })
+                .whereIn("user", function(){
+                    this.from('userFollowers')
+                    .select('following')
+                    .where('user', auth)
                 })
                 .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 10)
-            
             return results;
         }
     },
@@ -162,16 +158,21 @@ export const resolver: Resolvers = {
             await knex('users').where({ id: auth }).update({ avatar: url })
             return url;
         },
-        deleteContact: async (_, { id }, { auth }) => {
+        followUser: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const user_one = id < auth ? id : auth;
-            const user_two = id < auth ? auth : id;
-            const res = await knex('contacts')
-                .where({ user_one, user_two })
-                .del().returning('*')
-            if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
+            await knex('userFollowers')
+                .insert({ user: auth, following: id })
+                .onConflict(['user', 'following'])
+                .ignore()
             return id;
         },
+        unfollowUser: async (_, { id }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
+            await knex('userFollowers')
+                .where({ user: auth, following: id })
+                .del()
+            return id;
+        }
     },
     User: {
         fullname: ({ firstname, lastname }) => {
@@ -185,19 +186,6 @@ export const resolver: Resolvers = {
             if(city) return city;
             if(state) return state;
             return null
-        },
-        contacts: async ({ id }) => {
-            const contacts = await knex('contacts')
-                .select('users.*')
-                .join('users', 'contacts.user_two', '=', 'users.id')
-                .where('contacts.user_one', id)
-                .unionAll(function(){
-                    this.select('users.*')
-                    .from('contacts')
-                    .join('users', 'contacts.user_one', '=', 'users.id')
-                    .where('contacts.user_two', id)
-                })
-            return contacts;
         },
         locations: async ({ id }, __, { auth }) => {
             if(auth !== id) throw new AuthenticationError('Unauthorized')
@@ -223,20 +211,61 @@ export const resolver: Resolvers = {
             query.offset(offset || 0)
             return (await query);
         },
-        pending_contacts: async ({ id }, _, { auth }) => {
-            if(auth !== id) throw new AuthenticationError('Unauthorized')
-            const pending: IPendingContact[] = await knex('pendingContacts')
-                .where('user_recipient', id)
-                .unionAll(function(){
-                    this.select('*').from('pendingContacts').where('user_sending', id)
-                })
-            return pending;
+        am_following: async ({ id }, _, { auth }, { path }) => {
+            if(path.prev?.prev?.key === 'following') return true;
+            if(!auth) return false;
+            const result = await knex.raw(`
+                select exists(
+                    select * from user_followers 
+                    where "user" = ?
+                    and "following" = ?
+                )
+            `,[auth, id])
+            return result.rows[0].exists as boolean
         },
-        total_contacts: async ({ id }) => {
-            const res = await knex('contacts').where('user_one', id).orWhere('user_two', id).count()
-            const { count } = res[0];
-            if(typeof count === 'string') return parseInt(count);
-            return count;
+        follows_me: async ({ id }, _, { auth }, { path }) => {
+            if(path.prev?.prev?.key === 'followers') return true;
+            if(!auth) return false;
+            const result = await knex.raw(`
+                select exists(
+                    select * from user_followers
+                    where "user" = ?
+                    and "following" = ?
+                )
+            `,[id, auth])
+            return result.rows[0].exists as boolean
+        },
+        following: async ({ id }, { offset, limit }) => {
+            const result = await knex('users')
+                .whereIn("id", function(){
+                    this.from('userFollowers')
+                    .select('following')
+                    .where('user', id)
+                    .offset(offset || 0)
+                    .limit(limit || 20)
+                })
+            return result;
+        },
+        total_following: async ({ id }) => {
+            const [{ count }] = await knex('userFollowers').where('user', id).count()
+            if(typeof count === 'number') return count;
+            return parseInt(count);
+        },
+        followers: async ({ id }, { offset, limit }) => {
+            const result = await knex('users')
+                .whereIn("id", function(){
+                    this.from('userFollowers')
+                    .select('user')
+                    .where('following', id)
+                    .offset(offset || 0)
+                    .limit(limit || 20)
+                })
+            return result;
+        },
+        total_followers: async ({ id }) => {
+            const [{ count }] = await knex('userFollowers').where('following', id).count()
+            if(typeof count === 'number') return count;
+            return parseInt(count);
         },
         total_locations: async ({ id }) => {
             const res = await knex('locations').where('user', id).count()
