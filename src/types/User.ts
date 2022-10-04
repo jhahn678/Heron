@@ -64,6 +64,14 @@ export interface CatchStatistics {
     largest_catch: Maybe<ResolverTypeWrapper<ICatch>>
 }
 
+export interface LocationStatisticsRes {
+    total_locations: number
+    waterbody_counts: {
+        waterbody: ResolverTypeWrapper<IWaterbody>
+        count: number
+    }[] | null,
+}
+
 
 export interface UserDetailsUpdate {
     firstname?: string
