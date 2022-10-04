@@ -37,6 +37,7 @@ import { constraintDirectiveTypeDefs } from 'graphql-constraint-directive';
 
 const typesArray = [
     ...scalarTypeDefs,
+    geojsonTypeDef,
     constraintDirectiveTypeDefs,
     enumTypeDef,
     userTypeDef,
@@ -44,17 +45,16 @@ const typesArray = [
     catchTypeDef,
     locationTypeDef,
     waterbodyTypeDef,
-    geojsonTypeDef,
     waterbodyReviewTypeDef
 ]
 
 const resolversArray = [
     enumResolver,
+    geojsonResolver,
     userResolver,
     catchResolver,
     waterbodyResolver,
     locationResolver,
-    geojsonResolver,
     waterbodyReviewResolver,
     mediaResolver
 ]
