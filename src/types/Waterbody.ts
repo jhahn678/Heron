@@ -24,6 +24,7 @@ export interface IWaterbodyMedia {
 export interface ISavedWaterbody {
     user: number,
     waterbody: number
+    created_at: Date
 }
 
 export interface NewWaterbodyMedia {
