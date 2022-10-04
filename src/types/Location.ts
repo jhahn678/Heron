@@ -34,6 +34,7 @@ export interface ILocationFavorite {
 export interface ISavedLocation {
     location: number
     user: number
+    created_at: Date
 }
 
 export interface NewLocationObj {
@@ -45,3 +46,12 @@ export interface NewLocationObj {
     geom?: Knex.Raw,
     hexcolor?: string
 }
+
+export interface LocationUpdate {
+    title?: string, 
+    description?: string, 
+    privacy?: Privacy, 
+    hexcolor?: string, 
+    geom?: Knex.Raw,
+}
+
