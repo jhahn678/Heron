@@ -3,7 +3,7 @@ import { AuthenticationError} from 'apollo-server-core'
 import { CatchQuery, CatchSort, Resolvers } from '../types/graphql'
 import knex, { st } from '../configs/knex'
 import { validatePointCoordinates } from '../utils/validations/coordinates'
-import { NewCatchBuilder, CatchUpdateBuilder } from '../types/Catch'
+import { NewCatchBuilder, CatchUpdateBuilder, ICatch } from '../types/Catch'
 import { RequestError } from '../utils/errors/RequestError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 import { UploadError } from '../utils/errors/UploadError'
@@ -40,11 +40,6 @@ export const typeDef =  gql`
         NEAREST
     }
 
-    type Point {
-        type: String,
-        coordinates: [Float!]
-    }
-
     type Query {
         catch(id: Int!): Catch
         catches(
@@ -61,7 +56,7 @@ export const typeDef =  gql`
     type Mutation {
         createCatch(newCatch: NewCatch!): Catch
         updateCatchDetails(id: Int!, details: CatchDetails!): Catch
-        updateCatchLocation(id: Int!, coords: [Float]!): Catch
+        updateCatchLocation(id: Int!, point: Point): Catch
         addCatchMedia(id: Int!, media: [MediaInput!]!): [CatchMedia]
         removeCatchMedia(id: Int!): CatchMedia
         deleteCatch(id: Int!): Catch
@@ -77,7 +72,7 @@ export const typeDef =  gql`
 
     input NewCatch {
         waterbody: Int
-        coordinates: [Float!]    
+        point: Point  
         title: String,          @constraint(maxLength: 100)
         description: String,    @constraint(maxLength: 255)
         species: String         @constraint(maxLength: 100)
@@ -176,7 +171,7 @@ export const resolver: Resolvers = {
         // needs tested
         createCatch: async (_, { newCatch }, { auth }) => {
             const { 
-                coordinates, description, waterbody, 
+                point, description, waterbody, 
                 species, weight, length, media, title, rig 
             } = newCatch;
 
@@ -190,24 +185,18 @@ export const resolver: Resolvers = {
             if(rig) catchObj['rig'] = rig;
             if(weight) catchObj['weight'] = weight;
             if(length) catchObj['length'] = length;
-            if(coordinates && validatePointCoordinates(coordinates)){
-                const [lng, lat] = coordinates;
-                catchObj['geom'] = st.transform(st.setSRID(st.point(lng!, lat!), 4326), 3857)
-            }
-            const res = await knex("catches")
-              .insert(catchObj)
-              .returning('*');
+            if(point) catchObj['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
+
+            const [result] = await knex("catches").insert(catchObj, '*')
               
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
-                const uploads = valid.map(x => ({ user: auth, catch: res[0].id, ...x}))
+                const uploads = valid.map(x => ({ user: auth, catch: result.id, ...x}))
                 if(uploads.length === 0) throw new UploadError('INVALID_URL')
                 await knex('catchMedia').insert(uploads)
             }
 
-            const result = { ...res[0], total_favorites: 0 };
-            if(coordinates) result.geom = { type: "Point", coordinates }
-            return result;
+            return { ...result, total_favorites: 0 };
         },
         // needs tested
         updateCatchDetails: async (_, { id, details }, { auth }) => {
@@ -228,19 +217,17 @@ export const resolver: Resolvers = {
             return res[0];
         },
         // needs tested
-        updateCatchLocation: async (_, { id, coords }, { auth }) => {
+        updateCatchLocation: async (_, { id, point }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            if(!coords || !validatePointCoordinates(coords)) {
-                throw new RequestError('REQUEST_UNDEFINED')
-            }
+            const update = { geom: point ? st.transform(st.geomFromGeoJSON(point),3857) : undefined }
+            const [result] = await knex('catches')
+                .where({ id, user: auth })
+                .update(update)
+                .returning(
+                    knex.raw(`*, (st_asgeojson(st_transform(geom, 4326))) as geom`)
+                ) as ICatch[]
 
-            const [lng, lat] = coords;
-            const geom = st.transform(st.setSRID(st.point(lng!, lat!), 4326),3857)
-
-            const res = await knex('catches').where({ id, user: auth }).update({ geom }).returning('*')
-            if(res.length === 0) throw new RequestError('TRANSACTION_NOT_FOUND')
-
-            return res[0];
+            return result;
         },
         // needs tested
         addCatchMedia: async (_, { id, media }, { auth }) => {
