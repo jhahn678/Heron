@@ -1,7 +1,7 @@
 import knex from '../configs/knex'
 import { AuthenticationError, gql } from 'apollo-server-express'
 import { Resolvers, ReviewSort } from '../types/graphql'
-import { CatchStatisticsRes, UserDetailsUpdate } from '../types/User'
+import { CatchStatisticsRes, LocationStatisticsRes, UserDetailsUpdate } from '../types/User'
 import { RequestError } from '../utils/errors/RequestError'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
@@ -24,9 +24,15 @@ export const typeDef =  gql`
         total_following: Int!
         followers(limit: Int, offset: Int): [User]
         total_followers: Int!
-        locations: [Location]
+        locations(
+            date: DateRange, 
+            waterbody: [Int!], 
+            limit: Int
+            offset: Int
+        ): [Location]
         total_locations: Int!
-        saved_locations: [Location]
+        location_statistics: LocationStatistics
+        saved_locations(limit: Int, offset: Int): [Location]
         total_saved_locations: Int!
         catches(
             date: DateRange, 
@@ -39,7 +45,7 @@ export const typeDef =  gql`
         ): [Catch]
         total_catches: Int!
         catch_statistics: CatchStatistics
-        saved_waterbodies: [Waterbody]
+        saved_waterbodies(limit: Int, offset: Int): [Waterbody]
         total_saved_waterbodies: Int!
         waterbody_reviews(limit: Int, offset: Int, sort: ReviewSort): [WaterbodyReview]
         total_reviews: Int!
@@ -47,6 +53,11 @@ export const typeDef =  gql`
         total_media: Int!
         created_at: DateTime!
         updated_at: DateTime!
+    }
+
+    type LocationStatistics {
+        total_locations: Int!
+        waterbody_counts: [WaterbodyCount!]
     }
 
     type CatchStatistics {
@@ -187,7 +198,7 @@ export const resolver: Resolvers = {
             if(state) return state;
             return null
         },
-        locations: async ({ id }, __, { auth }) => {
+        locations: async ({ id }, { date, waterbody, limit, offset }, { auth }) => {
             if(auth !== id) throw new AuthenticationError('Unauthorized')
             const locations = await knex('locations')
                 .where('user', id)
@@ -273,13 +284,16 @@ export const resolver: Resolvers = {
             if(typeof count === 'string') return parseInt(count);
             return count;
         },
-        saved_locations: async ({ id }) => {
+        saved_locations: async ({ id }, { limit, offset }) => {
             const results = await knex('locations')
-                .whereRaw(` "id" in (
-	                select "location" 
-                    from saved_locations 
-                    where "user" = ?
-                )`, [id])
+                .whereIn("id", function(){
+                    this.from('savedLocations')
+                        .select('location')
+                        .where({ user: id })
+                        .orderBy('created_at', 'desc')
+                        .offset(offset || 0)
+                        .limit(limit || 20)
+                })
             return results;
         },
         total_saved_locations: async ({ id }) => {
@@ -292,13 +306,16 @@ export const resolver: Resolvers = {
             if(typeof count === 'string') return parseInt(count);
             return count;
         },
-        saved_waterbodies: async ({ id }) => {
+        saved_waterbodies: async ({ id }, { offset, limit }) => {
             const results = await knex('waterbodies')
-                .whereRaw(` "id" in (
-	                select "waterbody" 
-                    from saved_waterbodies
-                    where "user" = ?
-                `,[id])
+                .whereIn("id", function(){
+                    this.from('savedWaterbodies')
+                        .select('waterbody')
+                        .where({ user: id })
+                        .orderBy('created_at', 'desc')
+                        .offset(offset || 0)
+                        .limit(limit || 20)
+                })
             return results;
         },
         total_saved_waterbodies: async ({ id }) => {
@@ -349,6 +366,23 @@ export const resolver: Resolvers = {
                 total_species: species_counts ? species_counts.length : 0,
                 total_waterbodies: waterbody_counts ? waterbody_counts.length : 0
             }
+        },
+        location_statistics: async ({ id }) => {
+            const { rows } = await knex.raw(`
+                select wbscounts.jsonarr as waterbody_counts, 
+                total.count as total_locations from (
+                    select json_agg(wbs) as jsonarr
+                    from (
+                        select waterbody::int, count(waterbody)
+                        from locations
+                        where "user" = ?
+                        group by waterbody
+                    ) as wbs
+                ) as wbscounts,
+                ( select count(*) from locations where "user" = ?) as total
+            `,[id, id])
+            const result = rows[0] as LocationStatisticsRes;
+            return result;
         },
         total_media: async ({ id }) => {
             const { rows } = await knex.raw(`
