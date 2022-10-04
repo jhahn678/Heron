@@ -5,14 +5,12 @@ import { AuthError } from '../utils/errors/AuthError'
 import { UploadError } from '../utils/errors/UploadError'
 import { RequestError } from '../utils/errors/RequestError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
-import { validatePointCoordinates } from '../utils/validations/coordinates'
-import { NewLocationObj } from '../types/Location'
+import { ILocation, LocationUpdate, NewLocationObj } from '../types/Location'
 import S3Client from '../configs/s3'
 import { DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 const { S3_BUCKET_NAME } = process.env;
-import * as turf from '@turf/helpers'
 import { LocationQueryError } from '../utils/errors/LocationQueryError'
-import { Point } from 'geojson'
+import { CreateLocationError } from '../utils/errors/CreateLocationError'
 
 export const typeDef =  gql`
 
@@ -39,11 +37,8 @@ export const typeDef =  gql`
     }
 
     type Mutation {
-        createLocationPoint(location: NewLocationPoint!): Location
-        createLocationPolygon(location: NewLocationPolygon!): Location
-        updateLocationDetails(id: Int!, details: LocationDetails!): Location
-        updateGeojsonPoint(id: Int!, point: pointUpdate!): Location
-        updateGeojsonPolygon(id: Int!, polygon: polygonUpdate!): Location
+        createLocation(location: NewLocation!): Location
+        updateLocation(id: Int!, location: LocationUpdate!): Location
         addLocationMedia(id: Int!, media: [MediaInput!]!): [LocationMedia]
         removeLocationMedia(id: Int!): LocationMedia
         deleteLocation(id: Int!): Location
@@ -75,38 +70,23 @@ export const typeDef =  gql`
         NEAREST
     }
 
-    input NewLocationPoint {
+    input NewLocation {
         title: String
         privacy: Privacy!
         description: String
         waterbody: Int!
         media: [MediaInput!]
-        coordinates: [Float]!
+        point: Point
+        polygon: Polygon
         hexcolor: String
     }
 
-    input NewLocationPolygon {
-        title: String
-        privacy: Privacy!
-        description: String
-        waterbody: Int!
-        media: [MediaInput!]
-        coordinates: [[[Float!]!]!]!
-        hexcolor: String
-    }
-
-    input LocationDetails {
+    input LocationUpdate {
         title: String,
         description: String
-    }
-
-    input pointUpdate {
-        coordinates: [Float!]!
-        hexcolor: String
-    }
-
-    input polygonUpdate {
-        coordinates: [[[Float!]!]!]!
+        privacy: Privacy
+        point: Point
+        polygon: Polygon
         hexcolor: String
     }
 
@@ -233,132 +213,61 @@ export const resolver: Resolvers = {
     Mutation: {
         // needs tested
         // Convert to transaction
-        createLocationPoint: async (_, { location  }, { auth }) => {
+        createLocation: async (_, { location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
+            const { privacy, waterbody, point, polygon, title, description, hexcolor, media } = location;
+            if(!point && !polygon) throw new CreateLocationError('No geometry included')
 
-            const { privacy, coordinates, waterbody, media, title, description, hexcolor } = location;
             const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
-
             if(title) newLocation['title'] = title
             if(description) newLocation['description'] = description;
             if(hexcolor) newLocation['hexcolor'] = hexcolor;
+            if(point) newLocation['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
+            if(polygon) newLocation['geom'] = st.transform(st.geomFromGeoJSON(polygon), 3857)
 
-            if(!validatePointCoordinates(coordinates)) throw new RequestError('COORDS_INVALID')
-            const [lng, lat] = coordinates as [number, number];
-            newLocation['geom'] = st.transform(st.setSRID(st.point(lng, lat), 4326),3857)
-
-            const [res] = await knex('locations').insert({
-                ...newLocation,
-                nearest_place: knex.raw(`(
-                    select "name" || ', ' || "admin_one"
-                    from geoplaces 
-                    order by geoplaces.geom <-> ? 
-                    limit 1
-                )`,[newLocation['geom']])
-            }, '*')
+            const [result] = await knex('locations')
+                .insert({
+                    ...newLocation,
+                    nearest_place: knex.raw(`(
+                        select "name" || ', ' || "admin_one"
+                        from geoplaces 
+                        order by geoplaces.geom <-> ? 
+                        limit 1
+                    )`,[newLocation['geom']])
+                })
+                .returning(
+                    knex.raw(`*, (st_asgeojson(st_transform(geom, 4326))) as geom`)
+                ) as ILocation[]
 
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
-                const uploads = valid.map(x => ({ user: auth, location: res.id, ...x }))
+                const uploads = valid.map(x => ({ user: auth, location: result.id, ...x }))
                 if(uploads.length === 0) throw new UploadError('INVALID_URL')
                 await knex('locationMedia').insert(uploads)
             }
-
-            return { ...res, geom: { type: "Point", coordinates } as Point };
+            return { ...result, total_favorites: 0 };
         },
-        // needs tested
-        // Convert to transaction
-        createLocationPolygon: async (_, { location }, { auth }) => {
+        updateLocation: async (_, { id, location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
+            const { title, description, privacy, hexcolor, point, polygon } = location;
+            const update: LocationUpdate = {};
 
-            const { privacy, coordinates, waterbody, media, title, description, hexcolor } = location;
-            const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
-
-            if(title) newLocation['title'] = title
-            if(description) newLocation['description'] = description;
-            if(hexcolor) newLocation['hexcolor'] = hexcolor;
-            const geom = turf.polygon(coordinates).geometry;
-            newLocation['geom'] = st.transform(st.geomFromGeoJSON(geom),3857)
-
-            const [res] = await knex('locations').insert({
-                ...newLocation,
-                nearest_place: knex.raw(`(
-                    select "name" || ', ' || "admin_one"
-                    from geoplaces 
-                    order by geoplaces.geom <-> ? 
-                    limit 1
-                )`,[newLocation['geom']])
-            }, '*')
-            
-            if(media){
-                const valid = media.filter(x => validateMediaUrl(x.url))
-                const uploads = valid.map(x => ({ user: auth, location: res.id, ...x }))
-                if(uploads.length === 0) throw new UploadError('INVALID_URL')
-                await knex('locationMedia').insert(uploads)
-            }
-
-            return  { ...res, geom }
-        },
-        // needs tested
-        updateLocationDetails: async (_, { id, details }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const { title, description } = details;
-            const update: any = {};
-
-            if(!title && !description) throw new RequestError('REQUEST_UNDEFINED')
-            if(description) update['description'] = description;
             if(title) update['title'] = title;
+            if(description) update['description'] = description;
+            if(privacy) update['privacy'] = privacy;
+            if(hexcolor) update['hexcolor'] = hexcolor;
+            if(point) update['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
+            if(polygon) update['geom'] = st.transform(st.geomFromGeoJSON(polygon), 3857)
 
-            const [res] = await knex('locations')
+            const [result] = await knex('locations')
                 .where({ id, user: auth })
-                .update(update, '*')
+                .update(update)
+                .returning(
+                    knex.raw(`*, (st_asgeojson(st_transform(geom, 4326))) as geom`)
+                ) as ILocation[]
 
-            return res;
+            return { ...result, total_favorites: 0 };
         },
-        // needs tested
-        updateGeojsonPoint: async (_, { id, point }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const { coordinates, hexcolor } = point;
-            const update: any = {};
-
-            if(hexcolor) update['hexcolor'] = hexcolor
-            if(coordinates){
-                try{ 
-                    update['geom'] = st.geomFromGeoJSON(turf.point(coordinates).geometry)
-                }catch(err){
-                    throw new RequestError('COORDS_INVALID')
-                }
-            }
-
-            const [res] = await knex('locations')
-                .where({ id, user: auth })
-                .update(update, '*')
-            return res;
-        },
-        // needs tested
-        updateGeojsonPolygon: async (_, { id, polygon }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const { coordinates, hexcolor } = polygon;
-            const update: any = {};
-
-            if(hexcolor) update['hexcolor'] = hexcolor
-            if(coordinates){
-                try{
-                    update['geom'] = st.geomFromGeoJSON(turf.polygon(coordinates).geometry)
-                }catch(err){
-                    throw new RequestError('COORDS_INVALID')
-                }
-            }
-
-            const [res] = await knex('locations')
-                .where({ id, user: auth })
-                .update(update, '*')
-            return res;
-        },
-        // needs tested
         addLocationMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
