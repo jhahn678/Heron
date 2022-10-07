@@ -1,6 +1,6 @@
 import knex from '../configs/knex'
 import { AuthenticationError, gql } from 'apollo-server-express'
-import { Resolvers, ReviewSort } from '../types/graphql'
+import { Privacy, Resolvers, ReviewSort } from '../types/graphql'
 import { CatchStatisticsRes, LocationStatisticsRes, UserDetailsUpdate } from '../types/User'
 import { RequestError } from '../utils/errors/RequestError'
 import { UploadError } from '../utils/errors/UploadError'
@@ -27,7 +27,8 @@ export const typeDef =  gql`
         locations(
             date: DateRange, 
             waterbody: [Int!], 
-            limit: Int
+            privacy: [Privacy!],
+            limit: Int,
             offset: Int
         ): [Location]
         total_locations: Int!
@@ -198,12 +199,32 @@ export const resolver: Resolvers = {
             if(state) return state;
             return null
         },
-        locations: async ({ id }, { date, waterbody, limit, offset }, { auth }) => {
-            if(auth !== id) throw new AuthenticationError('Unauthorized')
-            const locations = await knex('locations')
+        locations: async ({ id }, { date, waterbody, privacy, limit, offset }, { auth }) => {
+            const query = knex('locations')
+                .select('*', 
+                    knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                    knex.raw(`(select count(*) from location_favorites where "location" = locations.id) as total_favorites`)
+                )
                 .where('user', id)
                 .orderBy('created_at', 'desc')
-            return locations;
+            if(auth === id && privacy) query.whereIn('privacy', privacy)
+            if(auth !== id){
+                query.where('privacy', Privacy.Public)
+                query.orWhereRaw(`
+                    privacy = 'friends' 
+                    and "user" in (
+                        select "following" 
+                        from user_followers
+                        where "user" = ?
+                    )
+                `,[auth])
+            }
+            if(date?.min) query.where('created_at', '>=', date.min)
+            if(date?.max) query.where('created_at', '<=', date.max)
+            if(waterbody) query.whereIn('waterbody', waterbody)
+            query.limit(limit || 20)
+            query.offset(offset || 0)
+            return (await query);
         },
         catches: async ({ id }, { date, waterbody, species, length, weight, limit, offset }) => {
             const query = knex('catches')
@@ -279,13 +300,19 @@ export const resolver: Resolvers = {
             return parseInt(count);
         },
         total_locations: async ({ id }) => {
-            const res = await knex('locations').where('user', id).count()
-            const { count } = res[0];
-            if(typeof count === 'string') return parseInt(count);
-            return count;
+            const [{ count }] = await knex('locations').where('user', id).count()
+            if(typeof count === 'number') return count;
+            return parseInt(count);
         },
         saved_locations: async ({ id }, { limit, offset }) => {
             const results = await knex('locations')
+                .select("*",
+                    knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                    knex.raw(`( select count(*) 
+                        from location_favorites 
+                        where location = ?
+                    ) as total_favorites`, [id])
+                )
                 .whereIn("id", function(){
                     this.from('savedLocations')
                         .select('location')

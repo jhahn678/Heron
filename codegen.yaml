@@ -9,8 +9,10 @@ generates:
         User: ./User#IUser
         Catch: ./Catch#ICatch
         CatchMedia: ./Catch#ICatchMedia
+        CatchMapImage: ./Catch#ICatchMedia
         Location: ./Location#ILocation
         LocationMedia: ./Location#ILocationMedia
+        LocationMapImage: ./Location#ILocationMedia
         Waterbody: ./Waterbody#IWaterbody
         WaterbodyMedia: ./Waterbody#IWaterbodyMedia
         WaterbodyReview: ./Waterbody#IWaterbodyReview

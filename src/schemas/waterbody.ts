@@ -1,7 +1,6 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
 import { CatchSort, Resolvers, ReviewSort, Sort } from '../types/graphql'
-import { IWaterbodyReview } from '../types/Waterbody'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 

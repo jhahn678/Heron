@@ -2,7 +2,6 @@ import { gql } from 'apollo-server-express'
 import { AuthenticationError} from 'apollo-server-core'
 import { CatchQuery, CatchSort, Resolvers } from '../types/graphql'
 import knex, { st } from '../configs/knex'
-import { validatePointCoordinates } from '../utils/validations/coordinates'
 import { NewCatchBuilder, CatchUpdateBuilder, ICatch } from '../types/Catch'
 import { RequestError } from '../utils/errors/RequestError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
@@ -26,6 +25,7 @@ export const typeDef =  gql`
         weight: Float,
         rig: String,
         media(limit: Int): [CatchMedia]
+        map_image: CatchMapImage
         created_at: DateTime,
         updated_at: DateTime
         total_favorites: Int
@@ -56,7 +56,7 @@ export const typeDef =  gql`
     type Mutation {
         createCatch(newCatch: NewCatch!): Catch
         updateCatchDetails(id: Int!, details: CatchDetails!): Catch
-        updateCatchLocation(id: Int!, point: Point): Catch
+        updateCatchLocation(id: Int!, point: Point, image: MediaInput): Catch
         addCatchMedia(id: Int!, media: [MediaInput!]!): [CatchMedia]
         removeCatchMedia(id: Int!): CatchMedia
         deleteCatch(id: Int!): Catch
@@ -80,6 +80,7 @@ export const typeDef =  gql`
         length: Float
         rig: String             @constraint(maxLength: 255)
         media: [MediaInput!]
+        map_image: MediaInput
     }
 
     input CatchDetails {
@@ -95,12 +96,11 @@ export const typeDef =  gql`
 export const resolver: Resolvers = {
     Query: {
         catch: async (_, { id }, { auth }) => {
-            const query = knex("catches")
-                .where({ id })
-                .select("*",
-                    knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-                    knex.raw(`(select count(*) from catch_favorites where catch = ?) as total_favorites`,[id])
-                )
+            const query = knex("catches").where({ id }).select("*",
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                knex.raw(`(select count(*) from catch_favorites where catch = ?) as total_favorites`,[id]),
+                knex.raw(`(select row_to_json(img) from catch_map_images as img where catch = ?) as map_image`,[id]),
+            )
             if(auth){
                 query.select(knex.raw(`(select exists (
                     select "user" from catch_favorites where "user" = ? and catch = ?
@@ -115,7 +115,8 @@ export const resolver: Resolvers = {
         //needs tested
         catches: async (_, { id, type, offset, limit, coordinates, within, sort }, { auth }) => {
             const query = knex("catches").select("*",
-              knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
+                knex.raw(`(select row_to_json(img) from catch_map_images as img where catch = catches.id) as map_image`)
             );
             switch(type){
                 case CatchQuery.User:
@@ -171,8 +172,8 @@ export const resolver: Resolvers = {
         // needs tested
         createCatch: async (_, { newCatch }, { auth }) => {
             const { 
-                point, description, waterbody, 
-                species, weight, length, media, title, rig 
+                point, description, waterbody, map_image,
+                species, weight, length, media, title, rig
             } = newCatch;
 
             if(!auth) throw new AuthenticationError('Authentication Required')
@@ -188,6 +189,11 @@ export const resolver: Resolvers = {
             if(point) catchObj['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
 
             const [result] = await knex("catches").insert(catchObj, '*')
+
+            if(map_image){
+                if(!validateMediaUrl(map_image.url)) throw new UploadError('INVALID_URL')
+                await knex('catchMapImages').insert({ ...map_image, user: auth, catch: result.id })
+            }
               
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
@@ -196,7 +202,8 @@ export const resolver: Resolvers = {
                 await knex('catchMedia').insert(uploads)
             }
 
-            return { ...result, total_favorites: 0 };
+            if(!point) return { ...result, total_favorites: 0 };
+            return { ...result, geom: point, total_favorites: 0 } 
         },
         // needs tested
         updateCatchDetails: async (_, { id, details }, { auth }) => {
@@ -211,14 +218,27 @@ export const resolver: Resolvers = {
             if(Object.keys(rest).length > 0) Object.assign(update, rest)
             if(Object.keys(update).length === 0) throw new RequestError('REQUEST_UNDEFINED')
 
-            const res = await knex('catches').where({ id }).update(update).returning('*')
-            if(res.length === 0) throw new RequestError('TRANSACTION_NOT_FOUND')
+            const [res] = await knex('catches').where({ id }).update(update, '*')
+            if(!res) throw new RequestError('TRANSACTION_NOT_FOUND')
 
-            return res[0];
+            return res;
         },
         // needs tested
-        updateCatchLocation: async (_, { id, point }, { auth }) => {
+        updateCatchLocation: async (_, { id, point, image }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
+
+            if(image){
+                if(!validateMediaUrl(image.url)) throw new UploadError('INVALID_URL')
+                await knex('catchMapImages')
+                    .insert({ ...image, user: auth, catch: id })
+                    .onConflict('catch')
+                    .merge(['key', 'url', 'created_at'])
+            }else{
+                await knex('catchMapImages')
+                    .where({ user: auth, catch: id })
+                    .del()
+            }
+
             const update = { geom: point ? st.transform(st.geomFromGeoJSON(point),3857) : undefined }
             const [result] = await knex('catches')
                 .where({ id, user: auth })
@@ -246,30 +266,31 @@ export const resolver: Resolvers = {
         removeCatchMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const res = await knex('catchMedia').where({ id, user: auth }).del().returning('*')
-            if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
+            const [res] = await knex('catchMedia').where({ id, user: auth }).del('*')
+            if(!res) throw new RequestError('DELETE_NOT_FOUND')
 
             await S3Client.send(new DeleteObjectCommand({
                 Bucket: S3_BUCKET_NAME!,
-                Key: res[0].key
+                Key: res.key
             }))
-            return res[0];
+            return res;
         },
         // needs tested
         deleteCatch: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const res = await knex('catches').where({ id, user: auth }).del().returning('*')
-            if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
-
-            const media = await knex('catchMedia').where({ id, user: auth }).del().returning('*')
-            const keys = media.map(x => ({ Key: x.key}))
+            const media = await knex('catchMedia').where({ catch: id, user: auth }).del('*')
+            const mapImage = await knex('catchMapImages').where({ catch: id, user: auth }).del('*')
+            const keys = media.concat(mapImage).map(x => ({ Key: x.key}))
             await S3Client.send(new DeleteObjectsCommand({
                 Bucket: S3_BUCKET_NAME!,
                 Delete: { Objects: keys }
             }))
 
-            return res[0];
+            const [res] = await knex('catches').where({ id, user: auth }).del('*')
+            if(!res) throw new RequestError('DELETE_NOT_FOUND')
+
+            return res;
         },
         toggleFavoriteCatch: async (_, { id }, { auth }) => {
             if (!auth) throw new AuthenticationError("Authentication Required");
@@ -311,7 +332,11 @@ export const resolver: Resolvers = {
                 .where({ catch: id })
                 .limit(limit || 20)
             return result;
-        }
+        },
+        map_image: async ({ id, map_image }) => {
+            if(map_image) return map_image;
+            return (await knex('catchMapImages').where('catch', id).first())
+        } 
     }
 }
 

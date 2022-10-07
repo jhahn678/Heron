@@ -5,7 +5,7 @@ import knex from '../configs/knex'
 export const typeDef =  gql`
 
     type Query {
-        media(id: Int!, type: MediaType!): [Media]
+        media(id: Int!, type: MediaType!): Media
     }
 
     union Media = CatchMedia | WaterbodyMedia | LocationMedia | AnyMedia
@@ -14,6 +14,8 @@ export const typeDef =  gql`
         CATCH
         LOCATION
         WATERBODY
+        MAP_CATCH
+        MAP_LOCATION
     }
 
     type AnyMedia {
@@ -33,7 +35,25 @@ export const typeDef =  gql`
         catch: Catch
     }
 
+    type CatchMapImage {
+        id: Int!
+        user: User
+        url: String!
+        key: String!
+        created_at: DateTime!
+        catch: Catch
+    }
+
     type LocationMedia  {
+        id: Int!
+        user: User
+        url: String!
+        key: String!
+        created_at: DateTime!
+        location: Location
+    }
+
+    type LocationMapImage {
         id: Int!
         user: User
         url: String!
@@ -72,15 +92,21 @@ export const resolver: Resolvers = {
                 case MediaType.Waterbody:
                     table = 'locationMedia'
                     break;
+                case MediaType.MapLocation:
+                    table = 'locationMapImages'
+                    break;
+                case MediaType.MapCatch:
+                    table = 'catchMapImages'
+                    break;
             }
             return (await knex(table).where({ id }).first())
         }
     },
     Media: {
         __resolveType: (media: any) => {
-            if(media.catch) return 'CatchMedia'
-            if(media.location) return 'LocationMedia'
-            if(media.waterbody) return 'WaterbodyMedia'
+            if(media.hasOwnProperty('catch')) return 'CatchMedia'
+            if(media.hasOwnProperty('location')) return 'LocationMedia'
+            if(media.hasOwnProperty('waterbody')) return 'WaterbodyMedia'
             return 'AnyMedia'
         }
     },
@@ -91,6 +117,9 @@ export const resolver: Resolvers = {
         user: async ({ user }) => {
             return (await knex('users').where('id', user).first())
         }
+    },
+    CatchMapImage: {
+
     },
     WaterbodyMedia: {
         waterbody: async ({ waterbody }) => {
@@ -107,6 +136,9 @@ export const resolver: Resolvers = {
         user: async ({ user }) => {
             return (await knex('users').where('id', user).first())
         }
+    },
+    LocationMapImage: {
+
     },
     AnyMedia: {
         user: async ({ user }) => {

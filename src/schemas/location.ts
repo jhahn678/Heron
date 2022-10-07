@@ -23,6 +23,7 @@ export const typeDef =  gql`
         waterbody: Waterbody
         nearest_place: String
         media: [LocationMedia]
+        map_image: LocationMapImage
         geom: Geometry
         hexcolor: String
         created_at: DateTime
@@ -33,7 +34,14 @@ export const typeDef =  gql`
 
     type Query {
         location(id: Int!): Location
-        locations(type: LocationQuery!, id: Int, coordinates: Coordinates, limit: Int, offset: Int, sort: LocationSort): [Location]
+        locations(
+            id: Int, 
+            type: LocationQuery!, 
+            coordinates: Coordinates, 
+            limit: Int, 
+            offset: Int, 
+            sort: LocationSort
+        ): [Location]
     }
 
     type Mutation {
@@ -41,7 +49,7 @@ export const typeDef =  gql`
         updateLocation(id: Int!, location: LocationUpdate!): Location
         addLocationMedia(id: Int!, media: [MediaInput!]!): [LocationMedia]
         removeLocationMedia(id: Int!): LocationMedia
-        deleteLocation(id: Int!): Location
+        deleteLocation(id: Int!): Int
         toggleFavoriteLocation(id: Int!): Boolean 
         toggleSaveLocation(id: Int!): Boolean
     }
@@ -76,6 +84,7 @@ export const typeDef =  gql`
         description: String
         waterbody: Int!
         media: [MediaInput!]
+        map_image: MediaInput
         point: Point
         polygon: Polygon
         hexcolor: String
@@ -87,6 +96,7 @@ export const typeDef =  gql`
         privacy: Privacy
         point: Point
         polygon: Polygon
+        map_image: MediaInput
         hexcolor: String
     }
 
@@ -94,38 +104,28 @@ export const typeDef =  gql`
 
 export const resolver: Resolvers = {
     Query: {
-        //needs tested
         location: async (_, { id }, { auth }) => {
             const query = knex("locations")
               .select("*",
                 knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-                knex.raw(`(
-                    select count(*) from location_favorites 
-                    where location_favorites.location = ?
-                ) as total_favorites`,[id])
+                knex.raw(`(select row_to_json(img) from location_map_images as img where location = ?) as map_image`,[id]),
+                knex.raw(`(select count(*) from location_favorites where location_favorites.location = ?) as total_favorites`,[id])
               )
               .where("id", id)
               .andWhere("privacy", "=", Privacy.Public);
             if(auth){
-                query.orWhere('user', auth)
-                query.orWhereRaw(`
-                    privacy = 'friends' 
-                    and "user" in (
-                        select "following" 
-                        from user_followers
-                        where "user" = ?
-                    )
-                `,[auth])
-                 query.select(
-                   knex.raw(`( select exists (
-                        select "user" from location_favorites 
-                        where "user" = ? and location = ?)
+                query.orWhereRaw(`"id" = ? and "user" = ?`,[id, auth])
+                query.orWhereRaw(`"id" = ? and privacy = 'friends' and "user" in (
+                    select "following" from user_followers where "user" = ?
+                )`,[id,auth])
+                query.select(
+                    knex.raw(`( select exists (
+                        select "user" from location_favorites where "user" = ? and location = ?)
                     ) as is_favorited`,[auth, id]),
-                   knex.raw(`( select exists (
-                        select "user" from saved_locations 
-                        where "user" = ? and location = ?)
+                    knex.raw(`( select exists (
+                        select "user" from saved_locations where "user" = ? and location = ?)
                     ) as is_saved`, [auth, id])
-                 );
+                );
             }else{
                 query.select(
                     knex.raw('false as is_favorited'),
@@ -141,26 +141,18 @@ export const resolver: Resolvers = {
             const query = knex("locations").select(
               "*",
               knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-              knex.raw(`(
-                select count(*) 
-                from location_favorites 
-                where location = ?
-            ) as total_favorites`, [id])
+              knex.raw(`(select count(*) from location_favorites where location = ?) as total_favorites`, [id]),
+              knex.raw(`(select row_to_json(img) from location_map_images as img where location = locations.id) as map_image`)
             );
             switch(type){
                 case LocationQuery.User:
                     query.where('user', id)
                     query.andWhere('privacy', Privacy.Public)
-                    if(auth){
-                        query.orWhereRaw(`
-                            privacy = 'friends' 
-                            and "user" in (
-                                select "following" 
-                                from user_followers
-                                where "user" = ?
-                            )
-                        `,[auth])
-                    }
+                    if(auth) query.orWhereRaw(`
+                        "id" = ? and privacy = 'friends' and "user" in (
+                            select "following" from user_followers where "user" = ?
+                        )
+                    `,[id, auth])
                     break;
                 case LocationQuery.UserSaved:
                     query.whereRaw(`"id" in (
@@ -170,16 +162,10 @@ export const resolver: Resolvers = {
                 case LocationQuery.Waterbody:
                     query.where('waterbody', id)
                     query.andWhere('privacy', Privacy.Public)
-                    if(auth){
-                        query.orWhereRaw(`
-                            privacy = 'friends' 
-                            and "user" in (
-                                select "following" 
-                                from user_followers
-                                where "user" = ?
-                            )
-                        `,[auth])
-                    }
+                    if(auth) query.orWhereRaw(`
+                        "id" = ? and privacy = 'friends' and "user" in (
+                            select "following" from user_followers where "user" = ?
+                    )`,[id, auth])
                     break;
             }
             switch (sort) {
@@ -215,7 +201,7 @@ export const resolver: Resolvers = {
         // Convert to transaction
         createLocation: async (_, { location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const { privacy, waterbody, point, polygon, title, description, hexcolor, media } = location;
+            const { privacy, waterbody, point, polygon, title, description, hexcolor, media, map_image } = location;
             if(!point && !polygon) throw new CreateLocationError('No geometry included')
 
             const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
@@ -230,14 +216,17 @@ export const resolver: Resolvers = {
                     ...newLocation,
                     nearest_place: knex.raw(`(
                         select "name" || ', ' || "admin_one"
-                        from geoplaces 
-                        order by geoplaces.geom <-> ? 
-                        limit 1
+                        from geoplaces order by geoplaces.geom <-> ? limit 1
                     )`,[newLocation['geom']])
                 })
                 .returning(
-                    knex.raw(`*, (st_asgeojson(st_transform(geom, 4326))) as geom`)
+                    knex.raw(`*, st_asgeojson(st_transform(geom, 4326))::json as geom`)
                 ) as ILocation[]
+
+            if(map_image){
+                if(!validateMediaUrl(map_image.url)) throw new UploadError('INVALID_URL')
+                await knex('locationMapImages').insert({ ...map_image, user: auth, location: result.id })
+            }
 
             if(media){
                 const valid = media.filter(x => validateMediaUrl(x.url))
@@ -245,11 +234,15 @@ export const resolver: Resolvers = {
                 if(uploads.length === 0) throw new UploadError('INVALID_URL')
                 await knex('locationMedia').insert(uploads)
             }
-            return { ...result, total_favorites: 0 };
+
+            return { 
+                ...result, 
+                total_favorites: 0 
+            };
         },
         updateLocation: async (_, { id, location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const { title, description, privacy, hexcolor, point, polygon } = location;
+            const { title, description, privacy, hexcolor, point, polygon, map_image } = location;
             const update: LocationUpdate = {};
 
             if(title) update['title'] = title;
@@ -259,14 +252,24 @@ export const resolver: Resolvers = {
             if(point) update['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
             if(polygon) update['geom'] = st.transform(st.geomFromGeoJSON(polygon), 3857)
 
+            if(map_image){
+                if(!validateMediaUrl(map_image.url)) throw new UploadError('INVALID_URL')
+                await knex('locationMapImages')
+                    .insert({ ...map_image, user: auth, location: id })
+                    .onConflict('location')
+                    .merge(['key', 'url', 'created_at'])
+            }
+
             const [result] = await knex('locations')
                 .where({ id, user: auth })
                 .update(update)
-                .returning(
-                    knex.raw(`*, (st_asgeojson(st_transform(geom, 4326))) as geom`)
+                .returning(knex.raw(`*, 
+                    st_asgeojson(st_transform(geom, 4326))::json as geom,
+                    (select count(*) from location_favorites where location = ?) as total_favorites
+                `,[id])
                 ) as ILocation[]
 
-            return { ...result, total_favorites: 0 };
+            return result;
         },
         addLocationMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
@@ -281,30 +284,30 @@ export const resolver: Resolvers = {
         removeLocationMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
 
-            const res = await knex('locationMedia').where({ id, user: auth  }).del().returning('*')
-            if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
+            const [res] = await knex('locationMedia').where({ id, user: auth  }).del('*')
+            if(!res) throw new RequestError('DELETE_NOT_FOUND')
 
             await S3Client.send(new DeleteObjectCommand({
                 Bucket: S3_BUCKET_NAME!,
-                Key: res[0].key
+                Key: res.key
             }))
-            return res[0];
+            return res;
         },
         // needs tested
         deleteLocation: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const res = await knex('locations').where({ id, user: auth }).del().returning('*')
-            if(res.length === 0) throw new RequestError('DELETE_NOT_FOUND')
-
-            const media = await knex('locationMedia').where({ location: id, user: auth }).del().returning('*')
-            const keys = media.map(x => ({ Key: x.key}))
+            const media = await knex('locationMedia').where({ location: id, user: auth }).del('*')
+            const mapImage = await knex('locationMapImages').where({ location: id, user: auth }).del('*')
+            const keys = media.concat(mapImage).map(x => ({ Key: x.key }))
             await S3Client.send(new DeleteObjectsCommand({
                 Bucket: S3_BUCKET_NAME!,
                 Delete: { Objects: keys }
             }))
 
-            return res[0]
+            const [res] = await knex('locations').where({ id, user: auth }).del('*')
+            if(!res) throw new RequestError('DELETE_NOT_FOUND')
+            return res.id;
         },
         toggleFavoriteLocation: async (_, { id }, { auth }) => {
             if (!auth) throw new AuthenticationError("Authentication Required");
@@ -362,6 +365,10 @@ export const resolver: Resolvers = {
         },
         media: async ({ id }) => {
             return (await knex('locationMedia').where({ location: id }))
+        },
+        map_image: async ({ id, map_image }) => {
+            if(map_image) return map_image;
+            return (await knex('locationMapImages').where('location', id).first())
         }
     }
 }

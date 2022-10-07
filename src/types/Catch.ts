@@ -1,5 +1,6 @@
 import { Point } from 'geojson'
 import { Knex } from 'knex'
+import { IMedia } from './Media'
 
 
 export interface ICatch {
@@ -13,6 +14,7 @@ export interface ICatch {
     length: number,
     weight: number,
     rig: string,
+    map_image?: ICatchMedia
     created_at: Date,
     updated_at: Date
     is_favorited?: boolean

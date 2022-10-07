@@ -10,11 +10,12 @@ export interface ILocation {
     title: string,
     description: string,
     geom: Point | Polygon | LineString
+    map_image?: ILocationMedia
     nearest_place: string
     hexcolor: string
     is_saved?: boolean
     is_favorited?: boolean
-    total_favorites?: number
+    total_favorites?: number,
 }
 
 export interface ILocationMedia {

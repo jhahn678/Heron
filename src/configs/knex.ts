@@ -7,6 +7,7 @@ import { ILocation, ILocationFavorite, ILocationMedia, ISavedLocation } from "..
 import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyMedia, IWaterbodyReview } from "../types/Waterbody";
 import { IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
+import { IMedia } from "../types/Media";
 const { PG_DB_CONNECTION } = process.env;
 
 const knex = Knex({
@@ -27,9 +28,11 @@ declare module 'knex/types/tables' {
         contacts: IContact,
         catches: ICatch,
         catchMedia: ICatchMedia,
+        catchMapImages: ICatchMedia
         catchFavorites: ICatchFavorite
         locations: ILocation,
         locationMedia: ILocationMedia,
+        locationMapImages: ILocationMedia
         savedLocations: ISavedLocation
         locationFavorites: ILocationFavorite,
         waterbodies: IWaterbody,
@@ -39,5 +42,6 @@ declare module 'knex/types/tables' {
         geometries: IGeometry,
         refreshTokens: IRefreshToken,
         userFollowers: IUserFollowers
+        
     }
 }
