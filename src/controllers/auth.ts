@@ -14,6 +14,9 @@ import {
 import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
 import redis from "../configs/redis"
 import { RequestError } from "../utils/errors/RequestError"
+import { UploadError } from "../utils/errors/UploadError"
+import { validateMediaUrl } from "../utils/validations/validateMediaUrl"
+import { NewUserObject } from "../types/User"
 
 
 interface LoginRequest {
@@ -63,10 +66,14 @@ interface RegisterRequest{
     username: string,
     password: string,
     email: string,
+    avatar: { key: string, url: string } | null | undefined
+    city: string | null | undefined
+    state: string | null | undefined
+    bio: string | null | undefined
 }
 
 export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterRequest>, res, next) => {
-    const { firstname, lastname, username, password, email } = req.body;
+    const { firstname, lastname, username, password, email, avatar, city, state, bio } = req.body;
 
     if(!email) throw new AuthError('EMAIL_REQUIRED');
     if(!username) throw new AuthError('USERNAME_REQUIRED');
@@ -84,26 +91,36 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
 
     const hashbrowns = await hashPassword(password)
 
-    const result = await knex('users')
-        .insert({
-            firstname, 
-            lastname, 
-            username: username.toLowerCase(), 
-            email: email.toLowerCase(), 
-            password: hashbrowns
-        })
-        .returning('*')
+    const newUser: NewUserObject = { 
+        username: username.toLowerCase(), 
+        email: email.toLowerCase(), 
+        password: hashbrowns 
+    }
 
-    const user = result[0];
-    const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
+    if(firstname) newUser.firstname = firstname;
+    if(lastname) newUser.lastname = lastname;
+    if(state) newUser.state = state;
+    if(city) newUser.city = city;
+    if(bio) newUser.bio = bio;
+
+    const [user] = await knex('users').insert(newUser, '*')
+        
+    let url: string | undefined;
+
+    if(avatar && validateMediaUrl(avatar.url)){
+        const [result] = await knex('userAvatars').insert({ ...avatar, user: user.id }, '*')
+        await knex('users').where({ id: user.id }).update({ avatar: result.url })
+        url = result.url;
+    }
+
+    const tokens = await createTokenPairOnAuth({ id: user.id }) 
 
     res.status(201).json({ 
-        accessToken,
-        refreshToken,
+        ...tokens,
         id: user.id,
         firstname: user.firstname,
         username: user.username, 
-        avatar: user.avatar, 
+        avatar: url, 
     })
 
 })
@@ -127,8 +144,14 @@ interface CheckEmailQuery {
 
 export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},CheckEmailQuery>, res, next) => {
     const { email } = req.query;
-    const user = await knex('users').where('email', email.toLowerCase()).first()
-    res.status(200).json({ email, available: Boolean(!user) })
+    try{
+        Joi.assert(email, Joi.string().trim().email())
+        const user = await knex('users').where('email', email.toLowerCase()).first()
+        res.status(200).json({ email, available: Boolean(!user), valid: true })
+    }catch(err){    //@ts-ignore
+        const valid = !Boolean(err?.name === 'ValidationError')
+        res.status(200).json({ email, available: true, valid })
+    }
 })
 
 
@@ -138,8 +161,13 @@ interface CheckUsernameQuery {
 
 export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},CheckUsernameQuery>, res, next) => {
     const { username } = req.query;
-    const user = await knex('users').where('username', username.toLowerCase()).first()
-    res.status(200).json({ username, available: Boolean(!user) })
+    try{
+        Joi.assert(username, Joi.string().trim().min(5).max(50))
+        const user = await knex('users').where('username', username.toLowerCase()).first()
+        res.status(200).json({ username, available: Boolean(!user) })
+    }catch(err){
+        res.status(200).json({ username, available: false })
+    }
 });
 
 interface NewAccessTokenReq {
