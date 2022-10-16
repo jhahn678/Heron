@@ -55,8 +55,7 @@ export const typeDef =  gql`
 
     type Mutation {
         createCatch(newCatch: NewCatch!): Catch
-        updateCatchDetails(id: Int!, details: CatchDetails!): Catch
-        updateCatchLocation(id: Int!, point: Point, image: MediaInput): Catch
+        updateCatch(id: Int!, details: CatchUpdate!): Catch
         addCatchMedia(id: Int!, media: [MediaInput!]!): [CatchMedia]
         removeCatchMedia(id: Int!): CatchMedia
         deleteCatch(id: Int!): Catch
@@ -79,17 +78,24 @@ export const typeDef =  gql`
         weight: Float
         length: Float
         rig: String             @constraint(maxLength: 255)
+        created_at: DateTime
         media: [MediaInput!]
         map_image: MediaInput
     }
 
-    input CatchDetails {
-        title: String,          @constraint(maxLength: 100)
-        description: String,    @constraint(maxLength: 255)
-        species: String,        @constraint(maxLength: 100)
+    input CatchUpdate {
+        title: String,
+        description: String,
+        waterbody: Int,
+        species: String, 
         weight: Float,
         length: Float,
-        rig: String             @constraint(maxLength: 255)
+        rig: String,
+        point: Point,
+        media: [MediaInput!]
+        deleteMedia: [Int!]
+        map_image: MediaInput
+        created_at: DateTime
     }
 `
 
@@ -172,8 +178,9 @@ export const resolver: Resolvers = {
         // needs tested
         createCatch: async (_, { newCatch }, { auth }) => {
             const { 
-                point, description, waterbody, map_image,
-                species, weight, length, media, title, rig
+                point, description, waterbody, 
+                map_image, species, weight, length,
+                media, title, rig, created_at
             } = newCatch;
 
             if(!auth) throw new AuthenticationError('Authentication Required')
@@ -187,6 +194,7 @@ export const resolver: Resolvers = {
             if(weight) catchObj['weight'] = weight;
             if(length) catchObj['length'] = length;
             if(point) catchObj['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
+            if(created_at) catchObj['created_at'] = created_at;
 
             const [result] = await knex("catches").insert(catchObj, '*')
 
@@ -206,48 +214,79 @@ export const resolver: Resolvers = {
             return { ...result, geom: point, total_favorites: 0 } 
         },
         // needs tested
-        updateCatchDetails: async (_, { id, details }, { auth }) => {
+        updateCatch: async (_, { id, details }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
-            const { weight, length, ...rest } = details;
+            const { 
+                weight, length, description, created_at,
+                rig, species, title, waterbody, 
+                point, map_image, media, deleteMedia 
+            } = details;
+
             const update: CatchUpdateBuilder = {};
 
             if(weight) update['weight'] = weight
+            if(weight === null) update['weight'] = null;
             if(length) update['length'] = length;
+            if(length === null) update['length'] = null;
+            if(description) update['description'] = description;
+            if(description === null) update['description'] = null;
+            if(rig) update['rig'] = rig;
+            if(rig === null) update['rig'] = null;
+            if(species) update['species'] = species;
+            if(species === null) update['species'] = null;
+            if(title) update['title'] = title;
+            if(title === null) update['title'] = null;
+            if(waterbody) update['waterbody'] = waterbody
+            if(point) update['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
+            if(point === null) update['geom'] = null;
+            if(created_at) update['created_at'] = created_at;
 
-            if(Object.keys(rest).length > 0) Object.assign(update, rest)
             if(Object.keys(update).length === 0) throw new RequestError('REQUEST_UNDEFINED')
 
-            const [res] = await knex('catches').where({ id }).update(update, '*')
-            if(!res) throw new RequestError('TRANSACTION_NOT_FOUND')
-
-            return res;
-        },
-        // needs tested
-        updateCatchLocation: async (_, { id, point, image }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            if(image){
-                if(!validateMediaUrl(image.url)) throw new UploadError('INVALID_URL')
-                await knex('catchMapImages')
-                    .insert({ ...image, user: auth, catch: id })
-                    .onConflict('catch')
-                    .merge(['key', 'url', 'created_at'])
-            }else{
-                await knex('catchMapImages')
-                    .where({ user: auth, catch: id })
-                    .del()
+            if(map_image || point === null){
+                const current = await knex('catchMapImages').where({ user: auth, catch: id }).first('key')
+                if(current) S3Client.send(new DeleteObjectCommand({
+                    Bucket: S3_BUCKET_NAME!,
+                    Key: current.key
+                }))
             }
 
-            const update = { geom: point ? st.transform(st.geomFromGeoJSON(point),3857) : undefined }
-            const [result] = await knex('catches')
-                .where({ id, user: auth })
+            if(map_image){
+                if(!validateMediaUrl(map_image.url)) throw new UploadError('INVALID_URL')
+                await knex('catchMapImages')
+                    .insert({ ...map_image, user: auth, catch: id })
+                    .onConflict('catch')
+                    .merge(['key', 'url', 'created_at'])
+            }
+
+            if(media){
+                const valid = media.filter(x => validateMediaUrl(x.url))
+                const uploads = valid.map(x => ({ user: auth, catch: id, ...x}))
+                if(uploads.length === 0) throw new UploadError('INVALID_URL')
+                await knex('catchMedia').insert(uploads)
+            }
+
+            if(deleteMedia){
+                const deleted = await knex('catchMedia')
+                    .whereIn('id', deleteMedia)
+                    .andWhere({ user: auth, catch: id })
+                    .del('key')
+                if(deleted.length) await S3Client.send(new DeleteObjectsCommand({
+                    Bucket: S3_BUCKET_NAME!,
+                    Delete: { Objects: deleted.map(x => ({ Key: x.key })) }
+                }))
+            }
+
+            const [res] = await knex('catches')
+                .where({ id })
                 .update(update)
                 .returning(
                     knex.raw(`*, (st_asgeojson(st_transform(geom, 4326))) as geom`)
                 ) as ICatch[]
 
-            return result;
+            if(!res) throw new RequestError('TRANSACTION_NOT_FOUND')
+            return res;
         },
         // needs tested
         addCatchMedia: async (_, { id, media }, { auth }) => {
@@ -281,8 +320,8 @@ export const resolver: Resolvers = {
 
             const media = await knex('catchMedia').where({ catch: id, user: auth }).del('*')
             const mapImage = await knex('catchMapImages').where({ catch: id, user: auth }).del('*')
-            const keys = media.concat(mapImage).map(x => ({ Key: x.key}))
-            await S3Client.send(new DeleteObjectsCommand({
+            const keys = media.concat(mapImage).map(x => ({ Key: x.key }))
+            if(keys.length) await S3Client.send(new DeleteObjectsCommand({
                 Bucket: S3_BUCKET_NAME!,
                 Delete: { Objects: keys }
             }))
