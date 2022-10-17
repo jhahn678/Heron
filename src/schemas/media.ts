@@ -1,11 +1,18 @@
-import { gql } from 'apollo-server-express'
+import { AuthenticationError, gql, UserInputError } from 'apollo-server-express'
 import { MediaType, Resolvers } from '../types/graphql'
 import knex from '../configs/knex'
+import { DeleteObjectCommand } from '@aws-sdk/client-s3'
+import S3Client from '../configs/s3'
+const { S3_BUCKET_NAME } = process.env;
 
 export const typeDef =  gql`
 
     type Query {
         media(id: Int!, type: MediaType!): Media
+    }
+
+    type Mutation {
+        deleteMedia(id: Int!, type: MediaType!): Media
     }
 
     union Media = CatchMedia | WaterbodyMedia | LocationMedia | AnyMedia
@@ -87,10 +94,10 @@ export const resolver: Resolvers = {
                     table = 'catchMedia';
                     break;
                 case MediaType.Location:
-                    table = 'waterbodyMedia';
+                    table = 'locationMedia';
                     break;
                 case MediaType.Waterbody:
-                    table = 'locationMedia'
+                    table = 'waterbodyMedia';
                     break;
                 case MediaType.MapLocation:
                     table = 'locationMapImages'
@@ -100,6 +107,26 @@ export const resolver: Resolvers = {
                     break;
             }
             return (await knex(table).where({ id }).first())
+        }
+    },
+    Mutation: {
+        deleteMedia: async (_, { id, type }, { auth }) => {
+            if(!auth) throw new AuthenticationError('Authentication Required')
+            let table: string;
+            switch(type){
+                case MediaType.Catch: table = 'catchMedia'; break;
+                case MediaType.Location: table = 'locationMedia'; break;
+                case MediaType.Waterbody: table = 'waterbodyMedia'; break;
+                case MediaType.MapLocation: table = 'locationMapImages'; break;
+                case MediaType.MapCatch: table = 'catchMapImages'; break;
+            }
+            const [res] = await knex(table).where('id', id).andWhere('user', auth).del('*')
+            if(!res) throw new UserInputError(`${id} on media type ${type} does not exist`)
+            await S3Client.send(new DeleteObjectCommand({
+                Bucket: S3_BUCKET_NAME!,
+                Key: res.key
+            }))
+            return res;
         }
     },
     Media: {
@@ -119,7 +146,12 @@ export const resolver: Resolvers = {
         }
     },
     CatchMapImage: {
-
+        catch: async ({ catch: catchId }) => {
+            return (await knex('catches').where('id', catchId).first())
+        },
+        user: async ({ user }) => {
+            return (await knex('users').where('id', user).first())
+        }
     },
     WaterbodyMedia: {
         waterbody: async ({ waterbody }) => {
@@ -138,7 +170,12 @@ export const resolver: Resolvers = {
         }
     },
     LocationMapImage: {
-
+        location: async ({ location }) => {
+            return (await knex('locations').where('id', location).first())
+        },  
+        user: async ({ user }) => {
+            return (await knex('users').where('id', user).first())
+        }
     },
     AnyMedia: {
         user: async ({ user }) => {
