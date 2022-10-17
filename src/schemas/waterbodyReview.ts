@@ -15,23 +15,23 @@ export const typeDef = gql`
     }
 
     type Query {
+        waterbodyReview(id: Int!): WaterbodyReview
         waterbodyReviews(id: Int!, offset: Int, limit: Int, sort: ReviewSort): [WaterbodyReview]
     }
 
     type Mutation {
         addWaterbodyReview(input: NewReviewInput!): WaterbodyReview
-        deleteWaterbodyReview(id: Int!): Int
-        editWaterbodyReview(input: ReviewUpdate!): WaterbodyReview
+        deleteWaterbodyReview(id: Int!): WaterbodyReview
+        editWaterbodyReview(id: Int!, input: ReviewUpdate!): WaterbodyReview
     }
 
     input NewReviewInput {
         waterbody: Int!
-        rating: Float!
+        rating: Int!
         text: String!
     }
 
     input ReviewUpdate {
-        id: Int!
         rating: Float
         text: String
     }
@@ -39,6 +39,9 @@ export const typeDef = gql`
 
 export const resolver: Resolvers = {
     Query: {
+        waterbodyReview: async (_, { id }) => {
+            return (await knex('waterbodyReviews').where('id', id).first())
+        },
         waterbodyReviews: async (_, { id, offset, limit, sort }) => {
             let sortField: keyof IWaterbodyReview = 'created_at';
             let sortOrder: 'asc' | 'desc' = 'desc';
@@ -71,40 +74,37 @@ export const resolver: Resolvers = {
             const { rating, waterbody, text } = input;
             if(rating > 5 || rating < 0) throw new WaterbodyReviewError('Invalid rating provided')
             query.insert({ waterbody, rating, text, user: auth }).returning('*')
-            const result = await query;
-            return result[0]
+            const [result] = await query;
+            return result;
         },
         deleteWaterbodyReview: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const result = await knex('waterbodyReviews')
+            const [result] = await knex('waterbodyReviews')
                 .where({ user: auth, id })
-                .del()
-                .returning('*')
-            return result[0].id;
+                .del('*')
+            return result
         },
-        editWaterbodyReview: async (_, { input }, { auth }) => {
+        editWaterbodyReview: async (_, { id, input }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const { id, rating, text } = input;
-            const update: Pick<WaterbodyReviewUpdate, 'rating' | 'text'> = {}
+            const { rating, text } = input;
+            const update: WaterbodyReviewUpdate = {}
             if(rating) update['rating'] = rating;
             if(text) update['text'] = text;
-            const result = await knex('waterbodyReviews')
+            const [result] = await knex('waterbodyReviews')
                 .where({ user: auth, id })
                 .update(update)
                 .returning('*')
-            return result[0];
+            return result;
         }
     },
     WaterbodyReview: {
         //can be optimized by default joining waterbody
         waterbody: async ({ waterbody }) => {
-            const result = await knex('waterbodies').where({ id: waterbody }).first()
-            return result;
+            return (await knex('waterbodies').where({ id: waterbody }).first())
         },
         // //can be optimized by default joining user
         user: async ({ user }) => {
-            const result = await knex('users').where({ id: user }).first()
-            return result;
+            return (await knex('users').where({ id: user }).first())
         }
     }
 }
