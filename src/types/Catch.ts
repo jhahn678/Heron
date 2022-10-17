@@ -1,5 +1,5 @@
 import { Point } from 'geojson'
-import { Knex } from 'knex'
+import knex, { Knex } from 'knex'
 import { IMedia } from './Media'
 
 
@@ -7,13 +7,13 @@ export interface ICatch {
     id: number,
     user: number,
     waterbody: number,
-    geom: Point | Knex.Raw,
-    title: string,
-    description: string,
-    species: string,
-    length: number,
-    weight: number,
-    rig: string,
+    geom: Point | Knex.Raw | null,
+    title: string | null,
+    description: string | null,
+    species: string | null,
+    length: number | null,
+    weight: number | null,
+    rig: string | null,
     map_image?: ICatchMedia
     created_at: Date,
     updated_at: Date
@@ -45,8 +45,19 @@ export interface NewCatchBuilder {
     species?: string
     weight?: number,
     length?: number,
-    rig?: string
+    rig?: string,
+    created_at?: Date
 }
 
 
-export type CatchUpdateBuilder = Omit<NewCatchBuilder, 'user' | 'waterbody' | 'geom'>
+export interface CatchUpdateBuilder {
+    waterbody?: number | undefined
+    title?: string | undefined | null
+    description?: string | undefined | null
+    weight?: number | undefined | null
+    length?: number | undefined | null
+    species?: string | undefined | null
+    rig?: string | undefined | null
+    geom?: Knex.Raw | undefined | null
+    created_at?: Date
+}

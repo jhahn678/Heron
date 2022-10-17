@@ -7,12 +7,12 @@ export interface ILocation {
     privacy: Privacy
     user: number,
     waterbody: number,
-    title: string,
-    description: string,
+    title: string | null,
+    description: string  | null,
     geom: Point | Polygon | LineString
     map_image?: ILocationMedia
     nearest_place: string
-    hexcolor: string
+    hexcolor: string  | null
     is_saved?: boolean
     is_favorited?: boolean
     total_favorites?: number,
@@ -49,8 +49,8 @@ export interface NewLocationObj {
 }
 
 export interface LocationUpdate {
-    title?: string, 
-    description?: string, 
+    title?: string | null, 
+    description?: string | null, 
     privacy?: Privacy, 
     hexcolor?: string, 
     geom?: Knex.Raw,

@@ -61,7 +61,6 @@ export interface NewWaterbodyReview {
 }
 
 export interface WaterbodyReviewUpdate {
-    id: number
     rating?: number
     text?: string
 }

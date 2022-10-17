@@ -227,15 +227,6 @@ export type CatchMediaArgs = {
   limit?: InputMaybe<Scalars['Int']>;
 };
 
-export type CatchDetails = {
-  description?: InputMaybe<Scalars['String']>;
-  length?: InputMaybe<Scalars['Float']>;
-  rig?: InputMaybe<Scalars['String']>;
-  species?: InputMaybe<Scalars['String']>;
-  title?: InputMaybe<Scalars['String']>;
-  weight?: InputMaybe<Scalars['Float']>;
-};
-
 export type CatchMapImage = {
   __typename?: 'CatchMapImage';
   catch?: Maybe<Catch>;
@@ -281,6 +272,21 @@ export type CatchStatistics = {
   total_species: Scalars['Int'];
   total_waterbodies: Scalars['Int'];
   waterbody_counts?: Maybe<Array<WaterbodyCount>>;
+};
+
+export type CatchUpdate = {
+  created_at?: InputMaybe<Scalars['DateTime']>;
+  deleteMedia?: InputMaybe<Array<Scalars['Int']>>;
+  description?: InputMaybe<Scalars['String']>;
+  length?: InputMaybe<Scalars['Float']>;
+  map_image?: InputMaybe<MediaInput>;
+  media?: InputMaybe<Array<MediaInput>>;
+  point?: InputMaybe<Scalars['Point']>;
+  rig?: InputMaybe<Scalars['String']>;
+  species?: InputMaybe<Scalars['String']>;
+  title?: InputMaybe<Scalars['String']>;
+  waterbody?: InputMaybe<Scalars['Int']>;
+  weight?: InputMaybe<Scalars['Float']>;
 };
 
 export enum ClassificationEnum {
@@ -366,9 +372,11 @@ export type LocationStatistics = {
 };
 
 export type LocationUpdate = {
+  deleteMedia?: InputMaybe<Array<Scalars['Int']>>;
   description?: InputMaybe<Scalars['String']>;
   hexcolor?: InputMaybe<Scalars['String']>;
   map_image?: InputMaybe<MediaInput>;
+  media?: InputMaybe<Array<MediaInput>>;
   point?: InputMaybe<Scalars['Point']>;
   polygon?: InputMaybe<Scalars['Polygon']>;
   privacy?: InputMaybe<Privacy>;
@@ -399,8 +407,10 @@ export type Mutation = {
   createCatch?: Maybe<Catch>;
   createLocation?: Maybe<Location>;
   deleteCatch?: Maybe<Catch>;
-  deleteLocation?: Maybe<Scalars['Int']>;
-  deleteWaterbodyReview?: Maybe<Scalars['Int']>;
+  deleteLocation?: Maybe<Location>;
+  deleteMedia?: Maybe<Media>;
+  deleteUser?: Maybe<User>;
+  deleteWaterbodyReview?: Maybe<WaterbodyReview>;
   editWaterbodyReview?: Maybe<WaterbodyReview>;
   followUser?: Maybe<Scalars['Int']>;
   removeCatchMedia?: Maybe<CatchMedia>;
@@ -410,8 +420,7 @@ export type Mutation = {
   toggleSaveLocation?: Maybe<Scalars['Boolean']>;
   toggleSaveWaterbody?: Maybe<Scalars['Boolean']>;
   unfollowUser?: Maybe<Scalars['Int']>;
-  updateCatchDetails?: Maybe<Catch>;
-  updateCatchLocation?: Maybe<Catch>;
+  updateCatch?: Maybe<Catch>;
   updateLocation?: Maybe<Location>;
   updateUserAvatar?: Maybe<Scalars['String']>;
   updateUserDetails?: Maybe<User>;
@@ -461,12 +470,19 @@ export type MutationDeleteLocationArgs = {
 };
 
 
+export type MutationDeleteMediaArgs = {
+  id: Scalars['Int'];
+  type: MediaType;
+};
+
+
 export type MutationDeleteWaterbodyReviewArgs = {
   id: Scalars['Int'];
 };
 
 
 export type MutationEditWaterbodyReviewArgs = {
+  id: Scalars['Int'];
   input: ReviewUpdate;
 };
 
@@ -511,16 +527,9 @@ export type MutationUnfollowUserArgs = {
 };
 
 
-export type MutationUpdateCatchDetailsArgs = {
-  details: CatchDetails;
+export type MutationUpdateCatchArgs = {
+  details: CatchUpdate;
   id: Scalars['Int'];
-};
-
-
-export type MutationUpdateCatchLocationArgs = {
-  id: Scalars['Int'];
-  image?: InputMaybe<MediaInput>;
-  point?: InputMaybe<Scalars['Point']>;
 };
 
 
@@ -540,6 +549,7 @@ export type MutationUpdateUserDetailsArgs = {
 };
 
 export type NewCatch = {
+  created_at?: InputMaybe<Scalars['DateTime']>;
   description?: InputMaybe<Scalars['String']>;
   length?: InputMaybe<Scalars['Float']>;
   map_image?: InputMaybe<MediaInput>;
@@ -565,7 +575,7 @@ export type NewLocation = {
 };
 
 export type NewReviewInput = {
-  rating: Scalars['Float'];
+  rating: Scalars['Int'];
   text: Scalars['String'];
   waterbody: Scalars['Int'];
 };
@@ -588,6 +598,7 @@ export type Query = {
   user?: Maybe<User>;
   waterbodies?: Maybe<Array<Maybe<Waterbody>>>;
   waterbody?: Maybe<Waterbody>;
+  waterbodyReview?: Maybe<WaterbodyReview>;
   waterbodyReviews?: Maybe<Array<Maybe<WaterbodyReview>>>;
 };
 
@@ -656,6 +667,11 @@ export type QueryWaterbodyArgs = {
 };
 
 
+export type QueryWaterbodyReviewArgs = {
+  id: Scalars['Int'];
+};
+
+
 export type QueryWaterbodyReviewsArgs = {
   id: Scalars['Int'];
   limit?: InputMaybe<Scalars['Int']>;
@@ -691,7 +707,6 @@ export enum ReviewSort {
 }
 
 export type ReviewUpdate = {
-  id: Scalars['Int'];
   rating?: InputMaybe<Scalars['Float']>;
   text?: InputMaybe<Scalars['String']>;
 };
@@ -966,12 +981,12 @@ export type ResolversTypes = ResolversObject<{
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
   Byte: ResolverTypeWrapper<Scalars['Byte']>;
   Catch: ResolverTypeWrapper<ICatch>;
-  CatchDetails: CatchDetails;
   CatchMapImage: ResolverTypeWrapper<ICatchMedia>;
   CatchMedia: ResolverTypeWrapper<ICatchMedia>;
   CatchQuery: CatchQuery;
   CatchSort: CatchSort;
   CatchStatistics: ResolverTypeWrapper<Omit<CatchStatistics, 'largest_catch' | 'top_waterbody' | 'waterbody_counts'> & { largest_catch?: Maybe<ResolversTypes['Catch']>, top_waterbody?: Maybe<ResolversTypes['Waterbody']>, waterbody_counts?: Maybe<Array<ResolversTypes['WaterbodyCount']>> }>;
+  CatchUpdate: CatchUpdate;
   ClassificationEnum: ClassificationEnum;
   Coordinates: Coordinates;
   CountryCode: ResolverTypeWrapper<Scalars['CountryCode']>;
@@ -1080,10 +1095,10 @@ export type ResolversParentTypes = ResolversObject<{
   Boolean: Scalars['Boolean'];
   Byte: Scalars['Byte'];
   Catch: ICatch;
-  CatchDetails: CatchDetails;
   CatchMapImage: ICatchMedia;
   CatchMedia: ICatchMedia;
   CatchStatistics: Omit<CatchStatistics, 'largest_catch' | 'top_waterbody' | 'waterbody_counts'> & { largest_catch?: Maybe<ResolversParentTypes['Catch']>, top_waterbody?: Maybe<ResolversParentTypes['Waterbody']>, waterbody_counts?: Maybe<Array<ResolversParentTypes['WaterbodyCount']>> };
+  CatchUpdate: CatchUpdate;
   Coordinates: Coordinates;
   CountryCode: Scalars['CountryCode'];
   Cuid: Scalars['Cuid'];
@@ -1462,9 +1477,11 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   createCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationCreateCatchArgs, 'newCatch'>>;
   createLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationCreateLocationArgs, 'location'>>;
   deleteCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationDeleteCatchArgs, 'id'>>;
-  deleteLocation?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationDeleteLocationArgs, 'id'>>;
-  deleteWaterbodyReview?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationDeleteWaterbodyReviewArgs, 'id'>>;
-  editWaterbodyReview?: Resolver<Maybe<ResolversTypes['WaterbodyReview']>, ParentType, ContextType, RequireFields<MutationEditWaterbodyReviewArgs, 'input'>>;
+  deleteLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationDeleteLocationArgs, 'id'>>;
+  deleteMedia?: Resolver<Maybe<ResolversTypes['Media']>, ParentType, ContextType, RequireFields<MutationDeleteMediaArgs, 'id' | 'type'>>;
+  deleteUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  deleteWaterbodyReview?: Resolver<Maybe<ResolversTypes['WaterbodyReview']>, ParentType, ContextType, RequireFields<MutationDeleteWaterbodyReviewArgs, 'id'>>;
+  editWaterbodyReview?: Resolver<Maybe<ResolversTypes['WaterbodyReview']>, ParentType, ContextType, RequireFields<MutationEditWaterbodyReviewArgs, 'id' | 'input'>>;
   followUser?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationFollowUserArgs, 'id'>>;
   removeCatchMedia?: Resolver<Maybe<ResolversTypes['CatchMedia']>, ParentType, ContextType, RequireFields<MutationRemoveCatchMediaArgs, 'id'>>;
   removeLocationMedia?: Resolver<Maybe<ResolversTypes['LocationMedia']>, ParentType, ContextType, RequireFields<MutationRemoveLocationMediaArgs, 'id'>>;
@@ -1473,8 +1490,7 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   toggleSaveLocation?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveLocationArgs, 'id'>>;
   toggleSaveWaterbody?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationToggleSaveWaterbodyArgs, 'id'>>;
   unfollowUser?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType, RequireFields<MutationUnfollowUserArgs, 'id'>>;
-  updateCatchDetails?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchDetailsArgs, 'details' | 'id'>>;
-  updateCatchLocation?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchLocationArgs, 'id'>>;
+  updateCatch?: Resolver<Maybe<ResolversTypes['Catch']>, ParentType, ContextType, RequireFields<MutationUpdateCatchArgs, 'details' | 'id'>>;
   updateLocation?: Resolver<Maybe<ResolversTypes['Location']>, ParentType, ContextType, RequireFields<MutationUpdateLocationArgs, 'id' | 'location'>>;
   updateUserAvatar?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, Partial<MutationUpdateUserAvatarArgs>>;
   updateUserDetails?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserDetailsArgs, 'details'>>;
@@ -1551,6 +1567,7 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'id'>>;
   waterbodies?: Resolver<Maybe<Array<Maybe<ResolversTypes['Waterbody']>>>, ParentType, ContextType, Partial<QueryWaterbodiesArgs>>;
   waterbody?: Resolver<Maybe<ResolversTypes['Waterbody']>, ParentType, ContextType, RequireFields<QueryWaterbodyArgs, 'id'>>;
+  waterbodyReview?: Resolver<Maybe<ResolversTypes['WaterbodyReview']>, ParentType, ContextType, RequireFields<QueryWaterbodyReviewArgs, 'id'>>;
   waterbodyReviews?: Resolver<Maybe<Array<Maybe<ResolversTypes['WaterbodyReview']>>>, ParentType, ContextType, RequireFields<QueryWaterbodyReviewsArgs, 'id'>>;
 }>;
 

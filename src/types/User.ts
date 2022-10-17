@@ -72,6 +72,16 @@ export interface LocationStatisticsRes {
     }[] | null,
 }
 
+export interface NewUserObject {
+    email: string
+    username: string
+    password: string
+    firstname?: string
+    lastname?: string
+    state?: string
+    city?: string
+    bio?: string
+}
 
 export interface UserDetailsUpdate {
     firstname?: string
