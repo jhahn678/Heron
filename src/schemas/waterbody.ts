@@ -144,7 +144,7 @@ export const resolver: Resolvers = {
             const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
             if(uploads.length === 0) throw new UploadError('INVALID_URL')
             
-            const res = await knex('waterbodyMedia').insert(uploads).returning('*')
+            const res = await knex('waterbodyMedia').insert(uploads, '*')
             return res;
         },
     },
@@ -188,23 +188,23 @@ export const resolver: Resolvers = {
             if(res.length > 0) return true; return false;
         },
         total_catches: async ({ id }) => {
-            const result = await knex('catches').where('waterbody', id).count('id')
-            const { count } = result[0]
+            const [{ count }] = await knex('catches').where('waterbody', id).count('id')
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
         total_species: async ({ id }) => {
-            const result = await knex('catches')
-                .where('waterbody', id)
+            const [{ count }] = await knex('catches')
+                .whereNotNull('species')
+                .andWhere('waterbody', id)
                 .countDistinct('species')
-            const { count } = result[0]
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
         all_species: async ({ id }) => {
             const result = await knex('catches')
-                .where('waterbody', id)
-                .select('species', knex.raw('count(species)'))
+                .whereNotNull('species')
+                .andWhere('waterbody', id)
+                .select('species', knex.raw(`count(*)`))
                 .groupBy('species')
                 .orderByRaw('count desc')
             return result;
@@ -212,7 +212,8 @@ export const resolver: Resolvers = {
         most_caught_species: async ({ id }) => {
             const result = knex('catches')
                 .select('species')
-                .where('waterbody', id)
+                .whereNotNull('species')
+                .andWhere('waterbody', id)
                 .groupBy('species')
                 .orderByRaw('count(*) desc')
             const res = await result;
@@ -228,8 +229,7 @@ export const resolver: Resolvers = {
             return locations;
         },
         total_locations: async ({ id }) => {
-            const result = await knex('locations').where('waterbody', id).count('id')
-            const { count } = result[0]
+            const [{ count }] = await knex('locations').where('waterbody', id).count('id')
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
@@ -242,8 +242,7 @@ export const resolver: Resolvers = {
             return media;
         },
         total_media: async ({ id }) => {
-            const result = await knex('waterbodyMedia').where({ waterbody: id }).count()
-            const { count } = result[0]
+            const [{ count }] = await knex('waterbodyMedia').where({ waterbody: id }).count()
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
@@ -272,10 +271,9 @@ export const resolver: Resolvers = {
             return results
         },
         total_reviews: async ({ id }) => {
-            const result = await knex('waterbodyReviews')
+            const [{ count }] = await knex('waterbodyReviews')
                 .where('waterbody', id)
                 .count()
-            const { count } = result[0];
             if(typeof count !== 'number') return parseInt(count)
             return count
         },
