@@ -8,9 +8,9 @@ import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 import { ILocation, LocationUpdate, NewLocationObj } from '../types/Location'
 import S3Client from '../configs/s3'
 import { DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3'
-const { S3_BUCKET_NAME } = process.env;
 import { LocationQueryError } from '../utils/errors/LocationQueryError'
 import { CreateLocationError } from '../utils/errors/CreateLocationError'
+const { S3_BUCKET_NAME } = process.env;
 
 export const typeDef =  gql`
 
@@ -49,7 +49,7 @@ export const typeDef =  gql`
         updateLocation(id: Int!, location: LocationUpdate!): Location
         addLocationMedia(id: Int!, media: [MediaInput!]!): [LocationMedia]
         removeLocationMedia(id: Int!): LocationMedia
-        deleteLocation(id: Int!): Int
+        deleteLocation(id: Int!): Location
         toggleFavoriteLocation(id: Int!): Boolean 
         toggleSaveLocation(id: Int!): Boolean
     }
@@ -98,6 +98,8 @@ export const typeDef =  gql`
         polygon: Polygon
         map_image: MediaInput
         hexcolor: String
+        media: [MediaInput!]
+        deleteMedia: [Int!]
     }
 
 `
@@ -108,8 +110,8 @@ export const resolver: Resolvers = {
             const query = knex("locations")
               .select("*",
                 knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-                knex.raw(`(select row_to_json(img) from location_map_images as img where location = ?) as map_image`,[id]),
-                knex.raw(`(select count(*) from location_favorites where location_favorites.location = ?) as total_favorites`,[id])
+                knex.raw(`(select row_to_json(img) from location_map_images as img where location = locations.id) as map_image`),
+                knex.raw(`(select count(*) from location_favorites where location_favorites.location = locations.id) as total_favorites`)
               )
               .where("id", id)
               .andWhere("privacy", "=", Privacy.Public);
@@ -141,7 +143,7 @@ export const resolver: Resolvers = {
             const query = knex("locations").select(
               "*",
               knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"),
-              knex.raw(`(select count(*) from location_favorites where location = ?) as total_favorites`, [id]),
+              knex.raw(`(select count(*) from location_favorites where location = locations.id) as total_favorites`),
               knex.raw(`(select row_to_json(img) from location_map_images as img where location = locations.id) as map_image`)
             );
             switch(type){
@@ -156,7 +158,7 @@ export const resolver: Resolvers = {
                     break;
                 case LocationQuery.UserSaved:
                     query.whereRaw(`"id" in (
-                        select "id" from saved_locations where "user" = ?
+                        select location from saved_locations where "user" = ?
                     )`,[id])
                     break;
                 case LocationQuery.Waterbody:
@@ -197,11 +199,11 @@ export const resolver: Resolvers = {
         }
     },
     Mutation: {
-        // needs tested
         // Convert to transaction
         createLocation: async (_, { location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const { privacy, waterbody, point, polygon, title, description, hexcolor, media, map_image } = location;
+            const { privacy, waterbody, point, polygon, title, 
+                description, hexcolor, media, map_image } = location;
             if(!point && !polygon) throw new CreateLocationError('No geometry included')
 
             const newLocation: NewLocationObj = { user: auth, privacy, waterbody };
@@ -242,15 +244,31 @@ export const resolver: Resolvers = {
         },
         updateLocation: async (_, { id, location }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
-            const { title, description, privacy, hexcolor, point, polygon, map_image } = location;
+            const { 
+                title, description, privacy, 
+                hexcolor, point, polygon, 
+                map_image, media, deleteMedia 
+            } = location;
             const update: LocationUpdate = {};
 
             if(title) update['title'] = title;
+            if(title === null) update['title'] = null;
             if(description) update['description'] = description;
+            if(description === null) update['description'] = null;
             if(privacy) update['privacy'] = privacy;
             if(hexcolor) update['hexcolor'] = hexcolor;
             if(point) update['geom'] = st.transform(st.geomFromGeoJSON(point), 3857)
             if(polygon) update['geom'] = st.transform(st.geomFromGeoJSON(polygon), 3857)
+
+            if(map_image || point === null){
+                const current = await knex('locationMapImages')
+                    .where({ user: auth, location: id })
+                    .first('key')
+                if(current) S3Client.send(new DeleteObjectCommand({
+                    Bucket: S3_BUCKET_NAME!,
+                    Key: current.key
+                }))
+            }
 
             if(map_image){
                 if(!validateMediaUrl(map_image.url)) throw new UploadError('INVALID_URL')
@@ -258,6 +276,24 @@ export const resolver: Resolvers = {
                     .insert({ ...map_image, user: auth, location: id })
                     .onConflict('location')
                     .merge(['key', 'url', 'created_at'])
+            }
+
+            if(media){
+                const valid = media.filter(x => validateMediaUrl(x.url))
+                const uploads = valid.map(x => ({ user: auth, location: id, ...x }))
+                if(uploads.length === 0) throw new UploadError('INVALID_URL')
+                await knex('locationMedia').insert(uploads)
+            }
+
+            if(deleteMedia){
+                const deleted = await knex('locationMedia')
+                    .whereIn('id', deleteMedia)
+                    .andWhere({ user: auth, location: id })
+                    .del('key')
+                await S3Client.send(new DeleteObjectsCommand({
+                    Bucket: S3_BUCKET_NAME!,
+                    Delete: { Objects: deleted.map(x => ({ Key: x.key })) }
+                }))
             }
 
             const [result] = await knex('locations')
@@ -307,7 +343,7 @@ export const resolver: Resolvers = {
 
             const [res] = await knex('locations').where({ id, user: auth }).del('*')
             if(!res) throw new RequestError('DELETE_NOT_FOUND')
-            return res.id;
+            return res;
         },
         toggleFavoriteLocation: async (_, { id }, { auth }) => {
             if (!auth) throw new AuthenticationError("Authentication Required");
