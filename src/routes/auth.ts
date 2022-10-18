@@ -13,6 +13,11 @@ router.post('/token', controllers.issueNewAccessToken)
 router.post('/forgot-password', controllers.forgotPassword)
 router.post('/reset-password', controllers.resetPassword)
 router.get('/my-account', controllers.getMyAccount)
+router.post('/login/apple', controllers.loginWithApple)
+router.post('/login/facebook', controllers.loginWithFacebook)
+router.post('/login/google', controllers.loginWithGoogle)
+router.post('/change-username', controllers.changeUsername)
+
 
 export default router;
 
