@@ -17,6 +17,9 @@ router.post('/login/apple', controllers.loginWithApple)
 router.post('/login/facebook', controllers.loginWithFacebook)
 router.post('/login/google', controllers.loginWithGoogle)
 router.post('/change-username', controllers.changeUsername)
+router.get('/has-password', controllers.hasPassword)
+router.post('/add-password', controllers.addPassword)
+router.post('/unlink-account', controllers.unlinkAccount)
 
 
 export default router;

@@ -3,6 +3,8 @@ export interface IRefreshToken {
     jwtid: string
 }
 
-// interface PasswordResetToken {
-//     user
-// }
+export enum LinkedAccount {
+    Apple = 'apple',
+    Google = 'google',
+    Facebook = 'facebook'
+}

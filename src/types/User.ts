@@ -11,12 +11,12 @@ export interface IUser {
     bio: string,
     city: string,
     state: string,
-    email: string
-    phone: number
-    google_id: string
-    facebook_id: string
-    apple_id: string 
-    password: string
+    email: string | null
+    phone: number | null
+    google_id: string | null
+    facebook_id: string | null
+    apple_id: string | null
+    password: string | null
     created_at: Date
     updated_at: Date
 }

@@ -14,6 +14,7 @@ import { FacebookResponse, NewUserFacebook, NewUserGoogle, NewUserObject } from 
 import { googleClient } from '../configs/google'
 import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken} from "../utils/auth/token"
 import fetch from 'node-fetch'
+import { LinkedAccount } from "../types/Auth"
 
 interface LoginRequest {
     identifier: string | number,
@@ -24,7 +25,7 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
     const { identifier, password } = req.body;
     if(typeof identifier === 'string' && identifier.includes('@' && '.')){
         const user = await knex('users').where('email', identifier.toLowerCase()).first()
-        if(!user || !(await comparePasswords(password, user.password))){
+        if(!user || !user.password || !(await comparePasswords(password, user.password))){
             throw new AuthError('AUTHENTICATION_FAILED')
         }
         const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
@@ -38,7 +39,7 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
         })
     }else if(typeof identifier === 'string'){
         const user = await knex('users').where('username', identifier.toLowerCase()).first()
-        if(!user || !(await comparePasswords(password, user.password))){
+        if(!user || !user.password || !(await comparePasswords(password, user.password))){
             throw new AuthError('AUTHENTICATION_FAILED')
         }
         const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
@@ -74,9 +75,12 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
     if(!username) throw new AuthError('USERNAME_REQUIRED');
     if(!password) throw new AuthError('PASSWORD_REQUIRED');
 
-    Joi.assert(email, Joi.string().trim().email())
-    Joi.assert(username, Joi.string().trim().min(5).max(50))
-    Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]/))
+    try{ Joi.assert(email, Joi.string().trim().email()) }
+    catch(err){ throw new AuthError('EMAIL_INVALID') }
+    try{ Joi.assert(username, Joi.string().trim().min(5).max(50)) }
+    catch(err){ throw new AuthError('USERNAME_INVALID') }
+    try{ Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]{7,30}/)) }
+    catch(err){ throw new AuthError('PASSWORD_INVALID') }
 
     const userWithEmail = await knex('users').where('email', email.toLowerCase()).first()
     if(userWithEmail) throw new AuthError('EMAIL_IN_USE')
@@ -195,6 +199,10 @@ export const resetPassword = asyncWrapper(async (req: Request<{},{},{
     const { token, password } = req.body;
     const user = await redis.get(token)
     if(!user) throw new AuthError('TOKEN_INVALID')
+
+    try{ Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]{7,30}/)) }
+    catch(err){ throw new AuthError('PASSWORD_INVALID') }
+
     await redis.del(token)
     const hash = await hashPassword(password)
     await knex('users')
@@ -208,8 +216,11 @@ export const getMyAccount = asyncWrapper(async (req, res) => {
     if(!authorization) throw new AuthError('TOKEN_INVALID')
     const token = authorization.split(' ')[1];
     const user = verifyAccessToken(token, { error: 'EXPRESS'})
-    const result = await knex('users').where('id', user.id).select('email').first()
+    const result = await knex('users')
+        .where('id', user.id)
+        .first('email', 'apple_id', 'facebook_id', 'google_id')
     if(!result) throw new RequestError('REQUEST_FAILED')
+    console.log(result)
     res.status(200).json(result)
 })
 
@@ -338,7 +349,7 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
     }
 })
 
-export const changeUsername = asyncWrapper(async (req: Request<{},{},{ token: string, username: string}>, res) => {
+export const changeUsername = asyncWrapper(async (req: Request<{},{},{ token: string, username: string }>, res) => {
     const { token, username } = req.body;
     if(!token) throw new AuthError('AUTHENTICATION_FAILED')
     if(!username) throw new AuthError('USERNAME_REQUIRED')
@@ -356,4 +367,52 @@ export const changeUsername = asyncWrapper(async (req: Request<{},{},{ token: st
     }catch(err){
         throw new AuthError('USERNAME_IN_USE')
     }
+})
+
+
+
+export const hasPassword = asyncWrapper(async (req, res) => {
+    const { authorization } = req.headers;
+    if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')
+    const token = authorization.split(' ')[1]
+    const { id } = verifyAccessToken(token, { error: 'EXPRESS' }) 
+    const user = await knex('users').where('id', id).first('password')
+    if(!user) throw new AuthError('ACCESS_TOKEN_INVALID')
+    res.status(200).json({ hasPassword: Boolean(user.password) })
+})
+
+
+
+export const addPassword = asyncWrapper(async (req: Request<{},{},{ password: string }>, res) => {
+    const { password } = req.body;
+    const { authorization } = req.headers
+    if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')
+    const token = authorization.split(' ')[1]
+    const { id } = verifyAccessToken(token, { error: 'EXPRESS' }) 
+    try{ Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]{7,30}/)) }
+    catch(err){ throw new AuthError('PASSWORD_INVALID') }
+    const result = await knex('users').where('id', id).update('password', password, 'id')
+    if(result.length === 0) throw new RequestError('REQUEST_FAILED')
+    res.status(200).json({ updated: true })
+})
+
+interface UnlinkUpdate {
+    apple_id?: null
+    facebook_id?: null
+    google_id?: null
+}
+
+export const unlinkAccount = asyncWrapper(async (req: Request<{},{},{ account: LinkedAccount }>, res) => {
+    const { account } = req.body
+    const { authorization } = req.headers
+    if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')
+    const token = authorization.split(' ')[1]
+    const { id } = verifyAccessToken(token, { error: 'EXPRESS' }) 
+    const update: UnlinkUpdate = {};
+    if(account === LinkedAccount.Apple) update['apple_id'] = null;
+    if(account === LinkedAccount.Facebook) update['facebook_id'] = null;
+    if(account === LinkedAccount.Google) update['google_id'] = null;
+    const result = await knex('users').where('id', id).update(update, 'id')
+    if(result.length === 0) throw new RequestError('REQUEST_FAILED')
+    res.status(200).json({ updated: true })
 })
