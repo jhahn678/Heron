@@ -17,6 +17,8 @@ type ErrorType =
 | 'REFRESH_TOKEN_EXPIRED'
 | 'REFRESH_TOKEN_INVALID'
 | 'PASSWORD_RESET_EMAIL_FAILED'
+| 'ACCESS_TOKEN_REQUIRED'
+| 'FACEBOOK_AUTH_FAILED'
 
 export class AuthError extends Error{
     status: number = 400
@@ -86,6 +88,12 @@ export class AuthError extends Error{
             case 'REFRESH_TOKEN_INVALID':
                 this.message = 'Refresh token invalid';
                 this.status = 401
+            case 'ACCESS_TOKEN_REQUIRED':
+                this.message = 'Access token not provided in request body';
+                this.status = 401
+            case 'FACEBOOK_AUTH_FAILED':
+                this.message = 'Could not fetch profile from facebook';
+                this.status = 500
             default:
                 break;
         }
