@@ -1,29 +1,24 @@
-import { asyncWrapper } from "../utils/errors/asyncWrapper"
-import * as crypto from 'crypto'
 import knex from "../configs/knex"
+import Joi from "joi"
+import redis from "../configs/redis"
+import * as crypto from 'crypto'
+import { asyncWrapper } from "../utils/errors/asyncWrapper"
+import { v4 as uuid } from 'uuid'
 import { hashPassword, comparePasswords } from '../utils/auth/passwords'
 import { AuthError } from "../utils/errors/AuthError"
-import Joi from "joi"
 import { Request } from 'express'
-import { 
-    refreshExistingTokenPair, 
-    createTokenPairOnAuth, 
-    verifyRefreshToken, 
-    verifyAccessToken
-} from "../utils/auth/token"
 import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
-import redis from "../configs/redis"
 import { RequestError } from "../utils/errors/RequestError"
-import { UploadError } from "../utils/errors/UploadError"
 import { validateMediaUrl } from "../utils/validations/validateMediaUrl"
-import { NewUserObject } from "../types/User"
-
+import { FacebookResponse, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
+import { googleClient } from '../configs/google'
+import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken} from "../utils/auth/token"
+import fetch from 'node-fetch'
 
 interface LoginRequest {
     identifier: string | number,
     password: string
 }
-
 
 export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res, next) => {
     const { identifier, password } = req.body;
@@ -126,11 +121,7 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
 })
 
 
-interface DeleteUser {
-    token: string
-}
-
-export const deleteAccount = asyncWrapper(async (req: Request<{},{},DeleteUser>, res, next) => {
+export const deleteAccount = asyncWrapper(async (req: Request<{},{},{ token: string }>, res, next) => {
     const { token } = req.body
     if(!token) throw new AuthError('AUTHENTICATION_REQUIRED')
     const { id } = await verifyRefreshToken(token)
@@ -138,11 +129,7 @@ export const deleteAccount = asyncWrapper(async (req: Request<{},{},DeleteUser>,
     res.status(204).json({ message: `User with id ${id} deleted`})
 })
 
-interface CheckEmailQuery {
-    email: string
-}
-
-export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},CheckEmailQuery>, res, next) => {
+export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},{ email: string }>, res, next) => {
     const { email } = req.query;
     try{
         Joi.assert(email, Joi.string().trim().email())
@@ -155,11 +142,7 @@ export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},
 })
 
 
-interface CheckUsernameQuery {
-    username: string
-}
-
-export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},CheckUsernameQuery>, res, next) => {
+export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},{ username: string }>, res, next) => {
     const { username } = req.query;
     try{
         Joi.assert(username, Joi.string().trim().min(5).max(50))
@@ -192,12 +175,7 @@ export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAcc
     }
 })
 
-
-interface ForgotPasswordReq {
-    email: string
-}
-
-export const forgotPassword = asyncWrapper(async (req: Request<{},{},ForgotPasswordReq>, res, next) => {
+export const forgotPassword = asyncWrapper(async (req: Request<{},{},{ email: string }>, res, next) => {
     const { email } = req.body;
     if(!email) throw new AuthError('EMAIL_REQUIRED')
     const user = await knex('users').where({ email: email.toLowerCase() }).first()
@@ -209,18 +187,17 @@ export const forgotPassword = asyncWrapper(async (req: Request<{},{},ForgotPassw
     res.status(200).json({ message: 'Request received' })
 })
 
-interface ResetPasswordReq {
+export const resetPassword = asyncWrapper(async (req: Request<{},{},{
     token: string
     password: string
-}
+}>, res, next) => {
 
-export const resetPassword = asyncWrapper(async (req: Request<{},{},ResetPasswordReq>, res, next) => {
     const { token, password } = req.body;
     const user = await redis.get(token)
     if(!user) throw new AuthError('TOKEN_INVALID')
     await redis.del(token)
     const hash = await hashPassword(password)
-    const updated = await knex('users')
+    await knex('users')
         .where('id', user)
         .update({ password: hash })
     res.status(200).json({ message: 'Password successfully changed' })
@@ -234,4 +211,149 @@ export const getMyAccount = asyncWrapper(async (req, res) => {
     const result = await knex('users').where('id', user.id).select('email').first()
     if(!result) throw new RequestError('REQUEST_FAILED')
     res.status(200).json(result)
+})
+
+interface AppleLoginBody {
+    apple_id: string
+    firstname?: string
+    lastname?: string
+}
+
+export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLoginBody>, res) => {
+    const { apple_id, firstname, lastname } = req.body;
+    if(!apple_id) throw new AuthError('AUTHENTICATION_FAILED')
+    const user =  await knex('users').where({ apple_id }).first()
+    if(user){
+        const tokens = await createTokenPairOnAuth({ id: user.id }) 
+        res.status(200).json({ 
+            ...tokens, 
+            id: user.id,
+            avatar: user.avatar, 
+            username: user.username, 
+            firstname: user.firstname,
+            account_created: false
+        })
+    }else{
+        const username = 'u-' + uuid().split('-').join('').slice(0,16)
+        const userObj: AppleLoginBody & { username: string } = { apple_id, username };
+        if(firstname) userObj['firstname'] = firstname;
+        if(lastname) userObj['lastname'] = lastname;
+        const [newUser] = await knex('users').insert(userObj, '*')
+        const tokens = await createTokenPairOnAuth({ id: newUser.id }) 
+        res.status(200).json({
+            ...tokens,
+            id: newUser.id,
+            avatar: newUser.avatar,
+            username: newUser.username,
+            firstname: newUser.firstname,
+            account_created: true
+        })
+    }
+})
+
+export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ idToken: string }>, res) => {
+    const { idToken } = req.body;
+    if(!idToken) throw new AuthError('AUTHENTICATION_FAILED')
+    const verified = await googleClient.verifyIdToken({
+        idToken, audience: process.env.GOOGLE_EXPO_CLIENT_ID!
+    })
+    const payload = verified.getPayload()
+    if(!payload) throw new AuthError('TOKEN_INVALID')
+    const { 
+        sub: google_id, 
+        picture: avatar,
+        family_name: lastname, 
+        given_name: firstname, 
+    } = payload;
+
+    const user =  await knex('users').where({ google_id }).first()
+    if(user){
+        const tokens = await createTokenPairOnAuth({ id: user.id }) 
+        res.status(200).json({ 
+            ...tokens, 
+            id: user.id,
+            avatar: user.avatar, 
+            username: user.username, 
+            firstname: user.firstname,
+            account_created: false
+        })
+    }else{
+        const username = 'u-' + uuid().split('-').join('').slice(0,16)
+        const userObj: NewUserGoogle = { username, google_id };
+        if(avatar) userObj['avatar'] = avatar;
+        if(firstname) userObj['firstname'] = firstname;
+        if(lastname) userObj['lastname'] = lastname;
+        const [newUser] = await knex('users').insert(userObj, '*')
+        const tokens = await createTokenPairOnAuth({ id: newUser.id }) 
+        res.status(200).json({
+            ...tokens,
+            id: newUser.id,
+            avatar: newUser.avatar,
+            username: newUser.username,
+            firstname: newUser.firstname,
+            account_created: true
+        })
+    }
+})
+
+export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ accessToken: string }>, res) => {
+    const { accessToken } = req.body;
+    if(!accessToken) throw new AuthError('ACCESS_TOKEN_REQUIRED')
+    const url = `https://graph.facebook.com/me?fields=id,first_name,last_name,picture&access_token=${accessToken}`
+    let response: FacebookResponse;
+    try{
+        response = await (await fetch(url)).json()
+    }catch(err){
+        console.error(err)
+        throw new AuthError('FACEBOOK_AUTH_FAILED')
+    }
+    const { id: facebook_id, first_name, last_name, picture } = response
+    const exists = await knex('users').where('facebook_id', facebook_id).first()
+    if(exists){
+        const tokens = await createTokenPairOnAuth({ id: exists.id }) 
+        res.status(200).json({ 
+            ...tokens, 
+            id: exists.id,
+            avatar: exists.avatar, 
+            username: exists.username, 
+            firstname: exists.firstname,
+            account_created: false
+        })
+    }else{
+        const username = 'u-' + uuid().split('-').join('').slice(0,16)
+        const newUser: NewUserFacebook = { facebook_id, username }
+        if(first_name) newUser['firstname'] = first_name;
+        if(last_name) newUser['lastname'] = last_name;
+        if(picture?.data?.url) newUser['avatar'] = picture.data.url;
+        const [result] = await knex('users').insert(newUser, '*')
+        const tokens = await createTokenPairOnAuth({ id: result.id })
+        res.status(200).json({
+            ...tokens, 
+            id: result.id,
+            avatar: result.avatar, 
+            username: result.username, 
+            firstname: result.firstname,
+            account_created: true
+        })
+    }
+})
+
+export const changeUsername = asyncWrapper(async (req: Request<{},{},{ token: string, username: string}>, res) => {
+    const { token, username } = req.body;
+    if(!token) throw new AuthError('AUTHENTICATION_FAILED')
+    if(!username) throw new AuthError('USERNAME_REQUIRED')
+    const { id } = verifyAccessToken(token, { error: 'EXPRESS' }) 
+    try{
+        Joi.assert(username, Joi.string().trim().min(5).max(50))
+    }catch(err){
+        throw new AuthError('USERNAME_INVALID')
+    }
+    try{
+        const [updated] = await knex('users')
+            .where({ id })
+            .update({ username: username.toLowerCase() }, '*') 
+        res.status(200).json({ id: updated.id, username: updated.username })
+    }catch(err){
+        throw new AuthError('USERNAME_IN_USE')
+    }
 })

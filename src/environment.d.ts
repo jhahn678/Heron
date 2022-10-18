@@ -17,6 +17,7 @@ declare global {
         SES_ACCESS_KEY: string
         SES_SECRET_KEY: string
         AWS_REGION: string
+        GOOGLE_EXPO_CLIENT_ID: string
       }
     }
   }

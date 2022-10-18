@@ -15,6 +15,7 @@ export interface IUser {
     phone: number
     google_id: string
     facebook_id: string
+    apple_id: string 
     password: string
     created_at: Date
     updated_at: Date
@@ -89,4 +90,31 @@ export interface UserDetailsUpdate {
     state?: string
     city?: string
     bio?: string
+}
+
+export interface NewUserGoogle {
+    google_id: string
+    username: string 
+    avatar?: string | undefined
+    firstname?: string | undefined
+    lastname?: string | undefined
+}
+
+export interface FacebookResponse {
+    id: string
+    first_name?: string
+    last_name?: string
+    picture?: {
+        data?: {
+            url?: string
+        }
+    }
+} 
+
+export interface NewUserFacebook {
+    facebook_id: string
+    username: string
+    avatar?: string
+    firstname?: string
+    lastname?: string
 }
