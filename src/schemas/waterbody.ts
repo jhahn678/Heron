@@ -1,6 +1,6 @@
 import { AuthenticationError, gql } from 'apollo-server-express'
 import knex, { st } from '../configs/knex'
-import { CatchSort, Resolvers, ReviewSort, Sort } from '../types/graphql'
+import { CatchSort, Privacy, Resolvers, ReviewSort, Sort } from '../types/graphql'
 import { UploadError } from '../utils/errors/UploadError'
 import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
 
@@ -223,13 +223,17 @@ export const resolver: Resolvers = {
         locations: async ({ id }, { offset, limit }) => {
             const locations = await knex('locations')
                 .where('waterbody', id)
+                .andWhere('privacy', Privacy.Public)
                 .orderBy('created_at', 'desc')
                 .offset(offset || 0)
                 .limit(limit || 4)
             return locations;
         },
         total_locations: async ({ id }) => {
-            const [{ count }] = await knex('locations').where('waterbody', id).count('id')
+            const [{ count }] = await knex('locations')
+                .where('waterbody', id)
+                .andWhere('privacy', Privacy.Public)
+                .count('id')
             if(typeof count !== 'number') return parseInt(count)
             return count
         },

@@ -245,8 +245,8 @@ export const resolver: Resolvers = {
             if(Object.keys(update).length === 0) throw new RequestError('REQUEST_UNDEFINED')
 
             if(map_image || point === null){
-                const current = await knex('catchMapImages').where({ user: auth, catch: id }).first('key')
-                if(current) S3Client.send(new DeleteObjectCommand({
+                const [current] = await knex('catchMapImages').where({ user: auth, catch: id }).del('key')
+                if(current) await S3Client.send(new DeleteObjectCommand({
                     Bucket: S3_BUCKET_NAME!,
                     Key: current.key
                 }))
