@@ -7,12 +7,17 @@ import { ILocation, ILocationFavorite, ILocationMedia, ISavedLocation } from "..
 import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyMedia, IWaterbodyReview } from "../types/Waterbody";
 import { IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
-import { IMedia } from "../types/Media";
-const { PG_DB_CONNECTION } = process.env;
+const { PG_HOST, PG_PORT, PG_DBNAME, PG_PASSWORD, PG_USER } = process.env;
 
 const knex = Knex({
     client: 'pg',
-    connection: PG_DB_CONNECTION,
+    connection: {
+        host: PG_HOST,
+        port: PG_PORT as unknown as number,
+        user: PG_USER,
+        password: PG_PASSWORD,
+        database: PG_DBNAME
+    },
     pool: { min: 0, max: 25 },
     wrapIdentifier: (value, origImpl) => origImpl(camelToSnakeCase(value))
 })
