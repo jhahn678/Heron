@@ -3,6 +3,7 @@ import { errorRequestHandler } from '../controllers/error';
 import AuthRouter from './auth'
 import UploadRouter from './upload'
 import AutocompleteRouter from './autocomplete'
+import SupportRouter from './support'
 const router = Router();
 
 import { asyncWrapper } from '../utils/errors/asyncWrapper';
@@ -23,6 +24,7 @@ router.get('/dev', asyncWrapper(async (req, res) => {
 router.use('/auth', AuthRouter)
 router.use('/upload', UploadRouter)
 router.use('/autocomplete', AutocompleteRouter)
+router.use('/support', SupportRouter)
 router.get('/', (req, res) => res.send('This is the Heron API'))
 router.use('*', errorRequestHandler)
 

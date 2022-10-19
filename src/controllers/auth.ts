@@ -220,7 +220,6 @@ export const getMyAccount = asyncWrapper(async (req, res) => {
         .where('id', user.id)
         .first('email', 'apple_id', 'facebook_id', 'google_id')
     if(!result) throw new RequestError('REQUEST_FAILED')
-    console.log(result)
     res.status(200).json(result)
 })
 
