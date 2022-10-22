@@ -6,21 +6,6 @@ import AutocompleteRouter from './autocomplete'
 import SupportRouter from './support'
 const router = Router();
 
-import { asyncWrapper } from '../utils/errors/asyncWrapper';
-import knex from '../configs/knex'
-router.get('/dev', asyncWrapper(async (req, res) => {
-
-    const result = await knex("locations")
-        .select(
-             "*",
-            knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom")
-        ).where('waterbody', 162607)
-
-
-    res.status(200).json(result)
-}))
-
-
 router.use('/auth', AuthRouter)
 router.use('/upload', UploadRouter)
 router.use('/autocomplete', AutocompleteRouter)

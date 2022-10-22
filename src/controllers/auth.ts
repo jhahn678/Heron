@@ -68,7 +68,7 @@ interface RegisterRequest{
     bio: string | null | undefined
 }
 
-export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterRequest>, res, next) => {
+export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterRequest>, res) => {
     const { firstname, lastname, username, password, email, avatar, city, state, bio } = req.body;
 
     if(!email) throw new AuthError('EMAIL_REQUIRED');
@@ -179,13 +179,14 @@ export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAcc
     }
 })
 
-export const forgotPassword = asyncWrapper(async (req: Request<{},{},{ email: string }>, res, next) => {
+export const forgotPassword = asyncWrapper(async (req: Request<{},{},{ email: string }>, res) => {
     const { email } = req.body;
     if(!email) throw new AuthError('EMAIL_REQUIRED')
     const user = await knex('users').where({ email: email.toLowerCase() }).first()
     if(user) {
         const token = crypto.randomBytes(32).toString('base64url')
-        await redis.set(token, user.id, { EX: (60 * 15) })
+        console.log(token)
+        await knex('passwordResetTokens').insert({ user: user.id, token })
         await sendPasswordResetEmail({ emailAddress: email, resetPasswordToken: token })
     }
     res.status(200).json({ message: 'Request received' })
@@ -194,20 +195,22 @@ export const forgotPassword = asyncWrapper(async (req: Request<{},{},{ email: st
 export const resetPassword = asyncWrapper(async (req: Request<{},{},{
     token: string
     password: string
-}>, res, next) => {
+}>, res) => {
 
     const { token, password } = req.body;
-    const user = await redis.get(token)
-    if(!user) throw new AuthError('TOKEN_INVALID')
 
     try{ Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]{7,30}/)) }
     catch(err){ throw new AuthError('PASSWORD_INVALID') }
 
-    await redis.del(token)
+    const [result] = await knex('passwordResetTokens').where({ token }).del('*')
+    if(!result) throw new AuthError('TOKEN_INVALID')
+
+    const limit = Date.now() - (1000 * 60 * 15)
+    const created = Date.parse(result.created_at.toString())
+    if(created < limit) throw new AuthError('TOKEN_EXPIRED')
+
     const hash = await hashPassword(password)
-    await knex('users')
-        .where('id', user)
-        .update({ password: hash })
+    await knex('users').where('id', result.user).update({ password: hash })
     res.status(200).json({ message: 'Password successfully changed' })
 })
 
