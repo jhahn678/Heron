@@ -1,6 +1,5 @@
 import { 
-    SendEmailCommand,
-    SendEmailCommandInput, 
+    SendEmailCommand, 
     SendEmailCommandOutput 
 }  from "@aws-sdk/client-ses";
 import sesClient from "../../configs/ses";
@@ -12,7 +11,7 @@ interface Params {
 }
 
 const RESET_URL = 'http://localhost:4000/auth/reset-password?token='
-const SENDER_ADDRESS = 'jhahn6789@gmail.com'
+const SENDER_ADDRESS = 'support@heron-mobile.com'
 
 const createResetPasswordCommandInput = (params: Params): SendEmailCommand => new SendEmailCommand({
     Destination: {
@@ -22,7 +21,10 @@ const createResetPasswordCommandInput = (params: Params): SendEmailCommand => ne
         Body: {
             Html: {
                 Charset: "UTF-8",
-                Data: `<p>A request was received to reset your password. If this was you, follow this link to proceed: ${RESET_URL}${params.resetPasswordToken}</p>`,
+                Data: `
+                <p>A request was received to reset your password. If this was you, follow this link to proceed:</p>
+                <a href="${RESET_URL}${params.resetPasswordToken}">${RESET_URL}${params.resetPasswordToken}</a> 
+                `,
             },
         },
         Subject: {

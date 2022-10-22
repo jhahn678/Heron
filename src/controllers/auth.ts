@@ -186,7 +186,10 @@ export const forgotPassword = asyncWrapper(async (req: Request<{},{},{ email: st
     if(user) {
         const token = crypto.randomBytes(32).toString('base64url')
         console.log(token)
-        await knex('passwordResetTokens').insert({ user: user.id, token })
+        await knex('passwordResetTokens')
+            .insert({ user: user.id, token })
+            .onConflict('user')
+            .merge(['token', 'created_at'])
         await sendPasswordResetEmail({ emailAddress: email, resetPasswordToken: token })
     }
     res.status(200).json({ message: 'Request received' })
