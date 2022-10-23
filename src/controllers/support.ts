@@ -1,6 +1,12 @@
 import { Request } from 'express'
 import { asyncWrapper } from "../utils/errors/asyncWrapper"
 
-export const reportProblem = asyncWrapper(async(req, res) => {
+interface ReportProblemReq {
+    category: string
+    body: string
+}
+
+export const reportProblem = asyncWrapper(async(req: Request<{},{},ReportProblemReq>, res) => {
+    const { category, body } = req.body;
     
 })

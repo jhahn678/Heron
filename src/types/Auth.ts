@@ -8,3 +8,9 @@ export enum LinkedAccount {
     Google = 'google',
     Facebook = 'facebook'
 }
+
+export interface IPasswordResetToken {
+    token: string
+    user: number
+    created_at: Date
+}

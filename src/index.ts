@@ -3,7 +3,7 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors'
 import routes from './routes'
-import redis from './configs/redis';
+// import redis from './configs/redis';
 import { ApolloServer } from 'apollo-server-express';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import {
@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 4000
 
 async function startServer(){
 
-    await redis.connect()
+    // await redis.connect()
     const app = express()
     const httpServer = http.createServer(app)
 

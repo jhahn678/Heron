@@ -1,7 +1,7 @@
-import { createClient } from 'redis'
+// import { createClient } from 'redis'
 
-const redis = createClient();
+// const redis = createClient();
 
-redis.on('ready', () => console.log('🏓 Connected to redis'));
+// redis.on('ready', () => console.log('🏓 Connected to redis'));
 
-export default redis;
+// export default redis;
