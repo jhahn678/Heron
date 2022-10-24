@@ -2,6 +2,7 @@ require('dotenv').config()
 import http from 'http';
 import express from 'express';
 import cors from 'cors'
+import path from 'path'
 import routes from './routes'
 // import redis from './configs/redis';
 import { ApolloServer } from 'apollo-server-express';
@@ -53,6 +54,7 @@ async function startServer(){
 
     app.use(cors())
     app.use(express.json())
+    app.use(express.static(path.join(__dirname, '..', 'public')))
     app.use('/', routes)
 }
 
