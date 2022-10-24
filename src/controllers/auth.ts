@@ -1,6 +1,6 @@
 import knex from "../configs/knex"
 import Joi from "joi"
-import redis from "../configs/redis"
+// import redis from "../configs/redis"
 import * as crypto from 'crypto'
 import { asyncWrapper } from "../utils/errors/asyncWrapper"
 import { v4 as uuid } from 'uuid'
