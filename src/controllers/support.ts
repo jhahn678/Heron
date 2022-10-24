@@ -8,5 +8,5 @@ interface ReportProblemReq {
 
 export const reportProblem = asyncWrapper(async(req: Request<{},{},ReportProblemReq>, res) => {
     const { category, body } = req.body;
-    
+    res.status(204).json({ message: 'Endpoint not operational' })
 })

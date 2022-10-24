@@ -10,50 +10,35 @@ import { Request } from 'express'
 import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
 import { RequestError } from "../utils/errors/RequestError"
 import { validateMediaUrl } from "../utils/validations/validateMediaUrl"
-import { FacebookResponse, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
+import { FacebookResponse, IUser, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
 import { googleClient } from '../configs/google'
 import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken} from "../utils/auth/token"
 import fetch from 'node-fetch'
 import { LinkedAccount } from "../types/Auth"
 
 interface LoginRequest {
-    identifier: string | number,
+    identifier: string,
     password: string
 }
 
-export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res, next) => {
+export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res) => {
     const { identifier, password } = req.body;
-    if(typeof identifier === 'string' && identifier.includes('@' && '.')){
-        const user = await knex('users').where('email', identifier.toLowerCase()).first()
-        if(!user || !user.password || !(await comparePasswords(password, user.password))){
-            throw new AuthError('AUTHENTICATION_FAILED')
-        }
-        const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
-        res.status(200).json({ 
-            accessToken,
-            refreshToken, 
-            id: user.id,
-            firstname: user.firstname,
-            username: user.username, 
-            avatar: user.avatar, 
-        })
-    }else if(typeof identifier === 'string'){
-        const user = await knex('users').where('username', identifier.toLowerCase()).first()
-        if(!user || !user.password || !(await comparePasswords(password, user.password))){
-            throw new AuthError('AUTHENTICATION_FAILED')
-        }
-        const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
-        res.status(200).json({ 
-            accessToken,
-            refreshToken, 
-            id: user.id,
-            firstname: user.firstname,
-            username: user.username, 
-            avatar: user.avatar, 
-        })
-    }else{
+    if(typeof identifier !== 'string') throw new AuthError('AUTHENTICATION_FAILED')
+    let user: IUser | undefined;
+    user = await knex('users').where('email', identifier.toLowerCase()).first()
+    if(!user) user = await knex('users').where('username', identifier.toLowerCase()).first()
+    if(!user || !user.password || !(await comparePasswords(password, user.password))){
         throw new AuthError('AUTHENTICATION_FAILED')
     }
+    const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
+    res.status(200).json({ 
+        accessToken,
+        refreshToken, 
+        id: user.id,
+        firstname: user.firstname,
+        username: user.username, 
+        avatar: user.avatar, 
+    })
 })
 
 interface RegisterRequest{
@@ -250,7 +235,7 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
             account_created: false
         })
     }else{
-        const username = 'u-' + uuid().split('-').join('').slice(0,16)
+        const username = 'u-' + uuid().split('-').join('').slice(0,16).toLowerCase()
         const userObj: AppleLoginBody & { username: string } = { apple_id, username };
         if(firstname) userObj['firstname'] = firstname;
         if(lastname) userObj['lastname'] = lastname;
@@ -294,7 +279,7 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ idToken:
             account_created: false
         })
     }else{
-        const username = 'u-' + uuid().split('-').join('').slice(0,16)
+        const username = 'u-' + uuid().split('-').join('').slice(0,16).toLowerCase()
         const userObj: NewUserGoogle = { username, google_id };
         if(avatar) userObj['avatar'] = avatar;
         if(firstname) userObj['firstname'] = firstname;
@@ -336,7 +321,7 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
             account_created: false
         })
     }else{
-        const username = 'u-' + uuid().split('-').join('').slice(0,16)
+        const username = 'u-' + uuid().split('-').join('').slice(0,16).toLowerCase()
         const newUser: NewUserFacebook = { facebook_id, username }
         if(first_name) newUser['firstname'] = first_name;
         if(last_name) newUser['lastname'] = last_name;
