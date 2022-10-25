@@ -255,9 +255,7 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
 export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ idToken: string }>, res) => {
     const { idToken } = req.body;
     if(!idToken) throw new AuthError('AUTHENTICATION_FAILED')
-    const verified = await googleClient.verifyIdToken({
-        idToken, audience: process.env.GOOGLE_EXPO_CLIENT_ID!
-    })
+    const verified = await googleClient.verifyIdToken({ idToken })
     const payload = verified.getPayload()
     if(!payload) throw new AuthError('TOKEN_INVALID')
     const { 
