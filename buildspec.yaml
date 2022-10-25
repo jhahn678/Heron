@@ -6,13 +6,14 @@ phases:
       nodejs: latest
     commands:
       - npm install typescript --location=global
-      - npm install --omit=dev
+      - npm install
   build:
     commands:
       - tsc
 
 artifacts:
   files:
+    - node-modules/**/*
     - package.json
     - package-lock.json
     - .ebextensions/**/*
