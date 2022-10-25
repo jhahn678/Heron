@@ -6,7 +6,7 @@ phases:
       nodejs: latest
     commands:
       - npm install typescript --location=global
-      - npm install
+      - npm install --omit=dev
   build:
     commands:
       - tsc
@@ -17,4 +17,3 @@ artifacts:
     - package-lock.json
     - .ebextensions/**/*
     - 'build/**/*'
-  discard-paths: yes
