@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: latest
+    commands:
+      - npm install typescript --location=global
+      - npm install
+  build:
+    commands:
+      - tsc
+
+artifacts:
+  files:
+    - package.json
+    - package-lock.json
+    - .ebextensions/**/*
+    - 'build/**/*'
+  discard-paths: yes
