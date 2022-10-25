@@ -213,7 +213,6 @@ export const resolver: Resolvers = {
             if(!point) return { ...result, total_favorites: 0 };
             return { ...result, geom: point, total_favorites: 0 } 
         },
-        // needs tested
         updateCatch: async (_, { id, details }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
