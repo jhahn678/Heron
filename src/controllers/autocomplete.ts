@@ -28,7 +28,7 @@ export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},A
     
     if(parsedValue.length > 1){
         const valid = validateAdminOne(adminOne);
-        if(valid) query.whereRaw('? = any(admin_one)', [valid])
+        if(valid) query.where('admin_one', valid)
     }
     
     if(lnglat && !adminOne && name.length < 8){
