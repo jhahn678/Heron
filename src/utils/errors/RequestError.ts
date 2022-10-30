@@ -3,7 +3,7 @@ type ErrorType =
 | 'DELETE_NOT_FOUND' | 'RESOURCE_NOT_FOUND'
 | 'TRANSACTION_NOT_FOUND' | 'REQUEST_UNDEFINED'
 | 'REQUEST_FAILED' | 'INVALID_REFERENCE' | 'COORDS_INVALID'
-| 'NAME_REQUIRED'
+| 'NAME_REQUIRED' | 'ID_REQUIRED'
 
 export class RequestError extends Error{
     status: number = 400;
@@ -39,6 +39,10 @@ export class RequestError extends Error{
                 break;
             case 'NAME_REQUIRED':
                 this.message = 'Name is a required parameter'
+                break;
+            case "ID_REQUIRED":
+                this.message = 'ID is a required parameter';
+                break;
         }
     }
 }
