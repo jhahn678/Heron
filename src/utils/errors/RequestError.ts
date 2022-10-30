@@ -3,6 +3,7 @@ type ErrorType =
 | 'DELETE_NOT_FOUND' | 'RESOURCE_NOT_FOUND'
 | 'TRANSACTION_NOT_FOUND' | 'REQUEST_UNDEFINED'
 | 'REQUEST_FAILED' | 'INVALID_REFERENCE' | 'COORDS_INVALID'
+| 'NAME_REQUIRED'
 
 export class RequestError extends Error{
     status: number = 400;
@@ -36,6 +37,8 @@ export class RequestError extends Error{
             case 'COORDS_INVALID':
                 this.message = 'The coordinates provided are invalid';
                 break;
+            case 'NAME_REQUIRED':
+                this.message = 'Name is a required parameter'
         }
     }
 }

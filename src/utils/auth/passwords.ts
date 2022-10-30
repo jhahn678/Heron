@@ -1,4 +1,5 @@
-import { compare, hash } from 'bcrypt'
+import { hash, compare } from 'bcryptjs'
+
 
 export const hashPassword = async (
     password: string
