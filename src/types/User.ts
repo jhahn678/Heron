@@ -100,6 +100,15 @@ export interface NewUserGoogle {
     lastname?: string | undefined
 }
 
+export interface GoogleResponse{
+  sub: string,
+  name: string,
+  given_name: string,
+  family_name: string,
+  picture: string,
+  email: string,
+}
+
 export interface FacebookResponse {
     id: string
     first_name?: string

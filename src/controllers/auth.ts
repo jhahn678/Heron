@@ -10,8 +10,7 @@ import { Request } from 'express'
 import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
 import { RequestError } from "../utils/errors/RequestError"
 import { validateMediaUrl } from "../utils/validations/validateMediaUrl"
-import { FacebookResponse, IUser, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
-import { googleClient } from '../configs/google'
+import { FacebookResponse, GoogleResponse, IUser, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
 import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken} from "../utils/auth/token"
 import fetch from 'node-fetch'
 import { LinkedAccount } from "../types/Auth"
@@ -252,20 +251,24 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
     }
 })
 
-export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ idToken: string }>, res) => {
-    const { idToken } = req.body;
-    if(!idToken) throw new AuthError('AUTHENTICATION_FAILED')
-    const verified = await googleClient.verifyIdToken({ idToken })
-    const payload = verified.getPayload()
-    if(!payload) throw new AuthError('TOKEN_INVALID')
+export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessToken: string }>, res) => {
+    const { accessToken } = req.body;
+    if(!accessToken) throw new AuthError('AUTHENTICATION_FAILED')
+    const url = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`
+    let response: GoogleResponse;
+    try{
+        response = await (await fetch(url)).json()
+    }catch(err){
+        console.error(err)
+        throw new AuthError('GOOGLE_AUTH_FAILED')
+    }
     const { 
         sub: google_id, 
         picture: avatar,
         family_name: lastname, 
         given_name: firstname, 
-    } = payload;
-
-    const user =  await knex('users').where({ google_id }).first()
+    } = response;
+    const user = await knex('users').where('google_id', google_id).first()
     if(user){
         const tokens = await createTokenPairOnAuth({ id: user.id }) 
         res.status(200).json({ 

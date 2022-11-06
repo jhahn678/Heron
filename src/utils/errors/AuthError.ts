@@ -19,6 +19,7 @@ type ErrorType =
 | 'PASSWORD_RESET_EMAIL_FAILED'
 | 'ACCESS_TOKEN_REQUIRED'
 | 'FACEBOOK_AUTH_FAILED'
+| 'GOOGLE_AUTH_FAILED'
 | 'PASSWORD_INVALID'
 
 export class AuthError extends Error{
@@ -94,6 +95,9 @@ export class AuthError extends Error{
                 this.status = 401
             case 'FACEBOOK_AUTH_FAILED':
                 this.message = 'Could not fetch profile from facebook';
+                this.status = 500
+            case 'GOOGLE_AUTH_FAILED':
+                this.message = 'Could not fetch profile from google';
                 this.status = 500
             case 'PASSWORD_INVALID':
                 this.message = 'Provided password is invalid';
