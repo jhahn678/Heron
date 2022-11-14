@@ -2,6 +2,7 @@ require('dotenv').config()
 import http from 'http';
 import express from 'express';
 import cors from 'cors'
+import cookieParser from 'cookie-parser';
 import path from 'path'
 import routes from './routes'
 // import redis from './configs/redis';
@@ -21,6 +22,11 @@ async function startServer(){
 
     // await redis.connect()
     const app = express()
+    app.use(cors())
+    app.use(express.json())
+    app.use(cookieParser())
+    app.use(express.static(path.join(__dirname, '..', 'public')))
+    app.use('/', routes)
     const httpServer = http.createServer(app)
 
     const schema = constraintDirective()(makeExecutableSchema({ typeDefs, resolvers }))
@@ -31,9 +37,13 @@ async function startServer(){
         cache: 'bounded',
         context: ({ req }) => {
             const { authorization } = req.headers;
+            const { ACCESS_TOKEN } = req.cookies;
             if(typeof authorization === 'string' && authorization.startsWith('Bearer ')){
                 const token = authorization.split(' ')[1]
                 const decoded = verifyAccessToken(token)
+                return { auth: decoded.id }
+            }else if(ACCESS_TOKEN){
+                const decoded = verifyAccessToken(ACCESS_TOKEN)
                 return { auth: decoded.id }
             }
         },
@@ -44,18 +54,11 @@ async function startServer(){
     });
 
     await server.start();
-    server.applyMiddleware({
-        app, path: '/graphql'
-    })
+    server.applyMiddleware({ app, path: '/graphql' })
 
     httpServer.listen(PORT, () => {
         console.log(`🚀 GraphQL ready at http://localhost:${PORT}${server.graphqlPath}`);
     })
-
-    app.use(cors())
-    app.use(express.json())
-    app.use(express.static(path.join(__dirname, '..', 'public')))
-    app.use('/', routes)
 }
 
 startServer()
