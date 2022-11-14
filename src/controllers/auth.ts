@@ -11,9 +11,9 @@ import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
 import { RequestError } from "../utils/errors/RequestError"
 import { validateMediaUrl } from "../utils/validations/validateMediaUrl"
 import { FacebookResponse, GoogleResponse, IUser, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
-import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken} from "../utils/auth/token"
+import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken, ACCESS_TOKEN_EXPIRES_IN} from "../utils/auth/token"
 import fetch from 'node-fetch'
-import { LinkedAccount } from "../types/Auth"
+import { AuthCookie, LinkedAccount } from "../types/Auth"
 
 interface LoginRequest {
     identifier: string,
@@ -29,10 +29,11 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
     if(!user || !user.password || !(await comparePasswords(password, user.password))){
         throw new AuthError('AUTHENTICATION_FAILED')
     }
-    const { accessToken, refreshToken } = await createTokenPairOnAuth({ id: user.id }) 
+    const tokens = await createTokenPairOnAuth({ id: user.id })
+    res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+    res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
     res.status(200).json({ 
-        accessToken,
-        refreshToken, 
+        ...tokens,
         id: user.id,
         firstname: user.firstname,
         username: user.username, 
@@ -97,7 +98,8 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
     }
 
     const tokens = await createTokenPairOnAuth({ id: user.id }) 
-
+    res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+    res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
     res.status(201).json({ 
         ...tokens,
         id: user.id,
@@ -117,7 +119,7 @@ export const deleteAccount = asyncWrapper(async (req: Request<{},{},{ token: str
     res.status(204).json({ message: `User with id ${id} deleted`})
 })
 
-export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},{ email: string }>, res, next) => {
+export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},{ email: string }>, res) => {
     const { email } = req.query;
     try{
         Joi.assert(email, Joi.string().trim().email())
@@ -130,7 +132,7 @@ export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},
 })
 
 
-export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},{ username: string }>, res, next) => {
+export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},{ username: string }>, res) => {
     const { username } = req.query;
     try{
         Joi.assert(username, Joi.string().trim().min(5).max(50))
@@ -147,9 +149,12 @@ interface NewAccessTokenReq {
     includeUser: boolean
 }
 
-export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAccessTokenReq>, res, next) => {
+export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAccessTokenReq>, res) => {
+    const { REFRESH_TOKEN } = req.cookies;
     const { token, includeUser } = req.body;
-    const { accessToken, refreshToken, user: id } = await refreshExistingTokenPair(token)
+    const { user: id, ...tokens } = await refreshExistingTokenPair(token || REFRESH_TOKEN)
+    res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+    res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
     if(includeUser){
         const user = await knex('users')
             .select('firstname', 'username', 'avatar')
@@ -157,9 +162,9 @@ export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAcc
             .first()
         if(!user) throw new AuthError('AUTHENTICATION_FAILED')
         const { firstname, username, avatar} = user;
-        res.status(200).json({ id, firstname, username, avatar, accessToken, refreshToken })
+        res.status(200).json({ id, firstname, username, avatar, ...tokens })
     }else{
-        res.status(200).json({ accessToken, refreshToken })
+        res.status(200).json({ ...tokens })
     }
 })
 
@@ -225,6 +230,8 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
     const user =  await knex('users').where({ apple_id }).first()
     if(user){
         const tokens = await createTokenPairOnAuth({ id: user.id }) 
+        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+        res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({ 
             ...tokens, 
             id: user.id,
@@ -239,7 +246,9 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
         if(firstname) userObj['firstname'] = firstname;
         if(lastname) userObj['lastname'] = lastname;
         const [newUser] = await knex('users').insert(userObj, '*')
-        const tokens = await createTokenPairOnAuth({ id: newUser.id }) 
+        const tokens = await createTokenPairOnAuth({ id: newUser.id })
+        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+        res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({
             ...tokens,
             id: newUser.id,
@@ -271,6 +280,8 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessTo
     const user = await knex('users').where('google_id', google_id).first()
     if(user){
         const tokens = await createTokenPairOnAuth({ id: user.id }) 
+        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+        res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({ 
             ...tokens, 
             id: user.id,
@@ -287,6 +298,8 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessTo
         if(lastname) userObj['lastname'] = lastname;
         const [newUser] = await knex('users').insert(userObj, '*')
         const tokens = await createTokenPairOnAuth({ id: newUser.id }) 
+        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+        res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({
             ...tokens,
             id: newUser.id,
@@ -313,6 +326,8 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
     const exists = await knex('users').where('facebook_id', facebook_id).first()
     if(exists){
         const tokens = await createTokenPairOnAuth({ id: exists.id }) 
+        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+        res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({ 
             ...tokens, 
             id: exists.id,
@@ -329,6 +344,8 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
         if(picture?.data?.url) newUser['avatar'] = picture.data.url;
         const [result] = await knex('users').insert(newUser, '*')
         const tokens = await createTokenPairOnAuth({ id: result.id })
+        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
+        res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({
             ...tokens, 
             id: result.id,

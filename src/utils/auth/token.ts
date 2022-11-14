@@ -4,10 +4,10 @@ import knex from '../../configs/knex'
 import { TokenExpiredError } from '../errors/ApolloTokenErrors'
 import { AuthError } from '../errors/AuthError'
 
-const TOKEN_ISSUER = 'Heron API'
-const TOKEN_ALGORITHM = 'HS256'
-const REFRESH_TOKEN_EXPIRES_IN = '180d' 
-const ACCESS_TOKEN_EXPIRES_IN = '60m'
+export const TOKEN_ISSUER = 'Heron API'
+export const TOKEN_ALGORITHM = 'HS256'
+export const REFRESH_TOKEN_EXPIRES_IN = '180d' 
+export const ACCESS_TOKEN_EXPIRES_IN = '60m'
 
 interface DecodedToken extends JwtPayload {
     /** UserID */

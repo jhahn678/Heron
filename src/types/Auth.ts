@@ -14,3 +14,8 @@ export interface IPasswordResetToken {
     user: number
     created_at: Date
 }
+
+export enum AuthCookie{
+    accessToken = 'ACCESS_TOKEN',
+    refreshToken = 'REFRESH_TOKEN'
+}
