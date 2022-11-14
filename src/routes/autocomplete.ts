@@ -7,6 +7,7 @@ router.get('/geoplaces', controllers.autocompleteGeoplaces)
 router.get('/waterbodies', controllers.autocompleteWaterbodies)
 router.get('/waterbodies/distinct-name', controllers.autocompleteDistinctName)
 router.get('/nearest-waterbodies', controllers.nearestWaterbodies)
+router.get('/nearest-geoplace', controllers.nearestGeoplace)
 router.get('/users', controllers.searchByUsername)
 
 export default router;

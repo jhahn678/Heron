@@ -259,3 +259,18 @@ export const autocompleteDistinctName = asyncWrapper(async(req: Request<{},{},{}
 
     res.status(200).json(results.map(x => x.name))
 })
+
+export const nearestGeoplace = asyncWrapper(async(req: Request<{},{},{},LngLatQuery>, res) => {
+    const { lnglat } = req.query;
+    if(!lnglat) throw new AutocompleteQueryError('LATLNG_NOT_PROVIDED')
+    const coords = lnglat.split(',').map(x => parseFloat(x))
+    if(!validateCoords(coords)) throw new CoordinateError('INVALID_COORDINATES')
+    const [lng, lat] = coords;
+    const point = st.transform(st.setSRID(st.point(lng, lat), 4326), 3857)
+    const result = await knex('geoplaces')
+        .select('name', 'admin_one')
+        .where('fclass', '=', 'P')
+        .orderByRaw('geom <-> ?', [point])
+        .first()
+    res.status(200).json({ geoplace: `${result.name}, ${result.admin_one}`})
+})
