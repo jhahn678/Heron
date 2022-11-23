@@ -22,7 +22,7 @@ async function startServer(){
 
     // await redis.connect()
     const app = express()
-    app.use(cors())
+    app.use(cors({ credentials: true, origin: true }))
     app.use(express.json())
     app.use(cookieParser())
     app.use(express.static(path.join(__dirname, '..', 'public')))
@@ -37,13 +37,9 @@ async function startServer(){
         cache: 'bounded',
         context: ({ req }) => {
             const { authorization } = req.headers;
-            const { ACCESS_TOKEN } = req.cookies;
             if(typeof authorization === 'string' && authorization.startsWith('Bearer ')){
                 const token = authorization.split(' ')[1]
                 const decoded = verifyAccessToken(token)
-                return { auth: decoded.id }
-            }else if(ACCESS_TOKEN){
-                const decoded = verifyAccessToken(ACCESS_TOKEN)
                 return { auth: decoded.id }
             }
         },
