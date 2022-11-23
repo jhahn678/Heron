@@ -6,6 +6,7 @@ const router = Router();
 
 router.post('/login', controllers.loginUser)
 router.post('/register', controllers.registerUser)
+router.post('/logout', controllers.clearAuthentication)
 router.delete('/delete-account', authorizeRequest, controllers.deleteAccount)
 router.get('/email', controllers.checkEmailAvailability)
 router.get('/username', controllers.checkUsernameAvailability)

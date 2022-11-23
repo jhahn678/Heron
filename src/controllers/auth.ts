@@ -11,7 +11,7 @@ import { sendPasswordResetEmail } from "../utils/email/resetPasswordEmailConfig"
 import { RequestError } from "../utils/errors/RequestError"
 import { validateMediaUrl } from "../utils/validations/validateMediaUrl"
 import { FacebookResponse, GoogleResponse, IUser, NewUserFacebook, NewUserGoogle, NewUserObject } from "../types/User"
-import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken, ACCESS_TOKEN_EXPIRES_IN} from "../utils/auth/token"
+import { refreshExistingTokenPair, createTokenPairOnAuth, verifyRefreshToken, verifyAccessToken, REFRESH_TOKEN_MAX_AGE } from "../utils/auth/token"
 import fetch from 'node-fetch'
 import { AuthCookie, LinkedAccount } from "../types/Auth"
 
@@ -30,8 +30,11 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
         throw new AuthError('AUTHENTICATION_FAILED')
     }
     const tokens = await createTokenPairOnAuth({ id: user.id })
-    res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
-    res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
+    res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { 
+        httpOnly: true, 
+        path: '/',
+        maxAge: REFRESH_TOKEN_MAX_AGE 
+    })
     res.status(200).json({ 
         ...tokens,
         id: user.id,
@@ -98,7 +101,6 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
     }
 
     const tokens = await createTokenPairOnAuth({ id: user.id }) 
-    res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
     res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
     res.status(201).json({ 
         ...tokens,
@@ -110,6 +112,15 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
 
 })
 
+export const clearAuthentication = asyncWrapper(async(req, res) => {
+    console.log(req.cookies)
+    const refreshToken = req.cookies[AuthCookie.refreshToken];
+    if(!refreshToken) throw new AuthError('REFRESH_TOKEN_INVALID')
+    res.clearCookie(AuthCookie.refreshToken)
+    const { jti } = await verifyRefreshToken(refreshToken)
+    await knex('refreshTokens').where({ jwtid: jti }).del()
+    res.status(200).json({ message: 'User logged out' })
+})
 
 export const deleteAccount = asyncWrapper(async (req: Request<{},{},{ token: string }>, res, next) => {
     const { token } = req.body
@@ -153,7 +164,6 @@ export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAcc
     const { REFRESH_TOKEN } = req.cookies;
     const { token, includeUser } = req.body;
     const { user: id, ...tokens } = await refreshExistingTokenPair(token || REFRESH_TOKEN)
-    res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
     res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
     if(includeUser){
         const user = await knex('users')
@@ -174,7 +184,6 @@ export const forgotPassword = asyncWrapper(async (req: Request<{},{},{ email: st
     const user = await knex('users').where({ email: email.toLowerCase() }).first()
     if(user) {
         const token = crypto.randomBytes(32).toString('base64url')
-        console.log(token)
         await knex('passwordResetTokens')
             .insert({ user: user.id, token })
             .onConflict('user')
@@ -230,7 +239,6 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
     const user =  await knex('users').where({ apple_id }).first()
     if(user){
         const tokens = await createTokenPairOnAuth({ id: user.id }) 
-        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
         res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({ 
             ...tokens, 
@@ -247,7 +255,6 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
         if(lastname) userObj['lastname'] = lastname;
         const [newUser] = await knex('users').insert(userObj, '*')
         const tokens = await createTokenPairOnAuth({ id: newUser.id })
-        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
         res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({
             ...tokens,
@@ -280,7 +287,6 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessTo
     const user = await knex('users').where('google_id', google_id).first()
     if(user){
         const tokens = await createTokenPairOnAuth({ id: user.id }) 
-        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
         res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({ 
             ...tokens, 
@@ -298,7 +304,6 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessTo
         if(lastname) userObj['lastname'] = lastname;
         const [newUser] = await knex('users').insert(userObj, '*')
         const tokens = await createTokenPairOnAuth({ id: newUser.id }) 
-        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
         res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({
             ...tokens,
@@ -326,7 +331,6 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
     const exists = await knex('users').where('facebook_id', facebook_id).first()
     if(exists){
         const tokens = await createTokenPairOnAuth({ id: exists.id }) 
-        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
         res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({ 
             ...tokens, 
@@ -344,7 +348,6 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
         if(picture?.data?.url) newUser['avatar'] = picture.data.url;
         const [result] = await knex('users').insert(newUser, '*')
         const tokens = await createTokenPairOnAuth({ id: result.id })
-        res.cookie(AuthCookie.accessToken, tokens.accessToken, { httpOnly: true })
         res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
         res.status(200).json({
             ...tokens, 
