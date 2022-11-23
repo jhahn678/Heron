@@ -6,7 +6,8 @@ import { AuthError } from '../errors/AuthError'
 
 export const TOKEN_ISSUER = 'Heron API'
 export const TOKEN_ALGORITHM = 'HS256'
-export const REFRESH_TOKEN_EXPIRES_IN = '180d' 
+export const REFRESH_TOKEN_EXPIRES_IN = '180d'
+export const REFRESH_TOKEN_MAX_AGE = 1000 * 60 * 60 * 24 * 180
 export const ACCESS_TOKEN_EXPIRES_IN = '60m'
 
 interface DecodedToken extends JwtPayload {
