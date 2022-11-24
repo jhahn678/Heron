@@ -39,6 +39,7 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
         ...tokens,
         id: user.id,
         firstname: user.firstname,
+        lastname: user.lastname,
         username: user.username, 
         avatar: user.avatar, 
     })
@@ -106,6 +107,7 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
         ...tokens,
         id: user.id,
         firstname: user.firstname,
+        lastname: user.lastname,
         username: user.username, 
         avatar: url, 
     })
@@ -167,12 +169,11 @@ export const issueNewAccessToken = asyncWrapper(async (req: Request<{},{},NewAcc
     res.cookie(AuthCookie.refreshToken, tokens.refreshToken, { httpOnly: true })
     if(includeUser){
         const user = await knex('users')
-            .select('firstname', 'username', 'avatar')
+            .select('firstname', 'lastname', 'username', 'avatar')
             .where({ id })
             .first()
         if(!user) throw new AuthError('AUTHENTICATION_FAILED')
-        const { firstname, username, avatar} = user;
-        res.status(200).json({ id, firstname, username, avatar, ...tokens })
+        res.status(200).json({ id, ...user, ...tokens })
     }else{
         res.status(200).json({ ...tokens })
     }
@@ -246,6 +247,7 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
             avatar: user.avatar, 
             username: user.username, 
             firstname: user.firstname,
+            lastname: user.lastname,
             account_created: false
         })
     }else{
@@ -262,6 +264,7 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
             avatar: newUser.avatar,
             username: newUser.username,
             firstname: newUser.firstname,
+            lastname: newUser.lastname,
             account_created: true
         })
     }
@@ -294,6 +297,7 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessTo
             avatar: user.avatar, 
             username: user.username, 
             firstname: user.firstname,
+            lastname: user.lastname,
             account_created: false
         })
     }else{
@@ -311,6 +315,7 @@ export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessTo
             avatar: newUser.avatar,
             username: newUser.username,
             firstname: newUser.firstname,
+            lastname: newUser.lastname,
             account_created: true
         })
     }
@@ -338,6 +343,7 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
             avatar: exists.avatar, 
             username: exists.username, 
             firstname: exists.firstname,
+            lastname: exists.lastname,
             account_created: false
         })
     }else{
@@ -355,6 +361,7 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
             avatar: result.avatar, 
             username: result.username, 
             firstname: result.firstname,
+            lastname: result.lastname,
             account_created: true
         })
     }
