@@ -21,7 +21,6 @@ export const authorizeRequest: RequestHandler = (req, res, next) => {
 export const requireAccessToken: RequestHandler = (req, res, next) => {
     try{
         const { authorization } = req.headers;
-        console.log({ authorization })
         if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')
         const payload = verifyAccessToken(authorization.split(' ')[1], { error: 'EXPRESS'})
         req.user = payload.id;
