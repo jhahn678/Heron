@@ -81,12 +81,12 @@ export class AuthError extends Error{
                 this.message = 'Access token expired';
                 this.status = 401;
                 break;
-            case 'REFRESH_TOKEN_EXPIRED':
-                this.message = 'Refresh token expired';
-                this.status = 401;
             case 'ACCESS_TOKEN_INVALID':
                 this.message = 'Access token invalid';
                 this.status = 401
+            case 'REFRESH_TOKEN_EXPIRED':
+                this.message = 'Refresh token expired';
+                this.status = 401;
             case 'REFRESH_TOKEN_INVALID':
                 this.message = 'Refresh token invalid';
                 this.status = 401
