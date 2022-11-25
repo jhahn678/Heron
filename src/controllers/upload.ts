@@ -6,7 +6,6 @@ import { v4 as uuid } from 'uuid'
 import S3Client from '../configs/s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
-import { AuthError } from '../utils/errors/AuthError';
 const { S3_BUCKET_NAME } = process.env;
 
 //Expiration for signed URL
