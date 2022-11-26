@@ -12,8 +12,9 @@ phases:
       - tsc
 artifacts:
   files:
+    - "build/**/*"
+    - .ebextensions/**/*
+    - "public/**/*"
+    - "node_modules/**/*"
     - package.json
     - package-lock.json
-    - "node_modules/**/*"
-    - .ebextensions/**/*
-    - "build/**/*"
