@@ -1,8 +1,9 @@
 import { Router } from 'express'
-import controllers from '../controllers'
+import waterbodyControllers from '../controllers/waterbodies'
+
 const router = Router()
 
-router.get('/', controllers.getWaterbodies)
-router.get('/name', controllers.getWaterbodiesByName)
+router.get('/', waterbodyControllers.getWaterbodies)
+router.get('/name', waterbodyControllers.getWaterbodiesByName)
 
 export default router;

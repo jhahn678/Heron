@@ -1,6 +1,5 @@
 import { hash, compare } from 'bcryptjs'
 
-
 export const hashPassword = async (
     password: string
 ): Promise<string> => {

@@ -1,27 +1,26 @@
 import { Router } from 'express'
-import controllers from '../controllers';
 import { authorizeRequest } from '../utils/middleware/auth'
+import authControllers from '../controllers/auth';
 
 const router = Router();
 
-router.post('/login', controllers.loginUser)
-router.post('/register', controllers.registerUser)
-router.post('/logout', controllers.clearAuthentication)
-router.delete('/delete-account', authorizeRequest, controllers.deleteAccount)
-router.get('/email', controllers.checkEmailAvailability)
-router.get('/username', controllers.checkUsernameAvailability)
-router.post('/token', controllers.issueNewAccessToken)
-router.post('/forgot-password', controllers.forgotPassword)
-router.post('/reset-password', controllers.resetPassword)
-router.get('/my-account', controllers.getMyAccount)
-router.post('/login/apple', controllers.loginWithApple)
-router.post('/login/facebook', controllers.loginWithFacebook)
-router.post('/login/google', controllers.loginWithGoogle)
-router.post('/change-username', controllers.changeUsername)
-router.get('/has-password', controllers.hasPassword)
-router.post('/add-password', controllers.addPassword)
-router.post('/unlink-account', controllers.unlinkAccount)
-
+router.post('/login', authControllers.loginUser)
+router.post('/register', authControllers.registerUser)
+router.post('/logout', authControllers.clearAuthentication)
+router.delete('/delete-account', authorizeRequest, authControllers.deleteAccount)
+router.get('/email', authControllers.checkEmailAvailability)
+router.get('/username', authControllers.checkUsernameAvailability)
+router.post('/token', authControllers.issueNewAccessToken)
+router.post('/forgot-password', authControllers.forgotPassword)
+router.post('/reset-password', authControllers.resetPassword)
+router.get('/my-account', authControllers.getMyAccount)
+router.post('/login/apple', authControllers.loginWithApple)
+router.post('/login/facebook', authControllers.loginWithFacebook)
+router.post('/login/google', authControllers.loginWithGoogle)
+router.post('/change-username', authControllers.changeUsername)
+router.get('/has-password', authControllers.hasPassword)
+router.post('/add-password', authControllers.addPassword)
+router.post('/unlink-account', authControllers.unlinkAccount)
 
 export default router;
 

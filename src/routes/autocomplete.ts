@@ -1,13 +1,14 @@
 import { Router } from 'express'
-import controllers from '../controllers'
+import autocompleteControllers from '../controllers/autocomplete'
 const router = Router()
 
-router.get('/', controllers.autocompleteAll)
-router.get('/geoplaces', controllers.autocompleteGeoplaces)
-router.get('/waterbodies', controllers.autocompleteWaterbodies)
-router.get('/waterbodies/distinct-name', controllers.autocompleteDistinctName)
-router.get('/nearest-waterbodies', controllers.nearestWaterbodies)
-router.get('/nearest-geoplace', controllers.nearestGeoplace)
-router.get('/users', controllers.searchByUsername)
+router.get('/', autocompleteControllers.autocompleteAll)
+router.get('/geoplaces', autocompleteControllers.autocompleteGeoplaces)
+router.get('/waterbodies', autocompleteControllers.autocompleteWaterbodies)
+router.get('/waterbodies/distinct-name', autocompleteControllers.searchDistinctWaterbodyName)
+router.get('/nearest-waterbodies', autocompleteControllers.nearestWaterbodies)
+router.get('/nearest-geoplace', autocompleteControllers.nearestGeoplace)
+router.get('/users', autocompleteControllers.searchUsersByUsername)
 
 export default router;
+

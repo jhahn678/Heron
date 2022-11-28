@@ -1,5 +1,5 @@
 import { Request } from 'express'
-import { asyncWrapper } from "../utils/errors/asyncWrapper"
+import { asyncWrapper } from '../../utils/errors/asyncWrapper';
 
 interface ReportProblemReq {
     category: string
