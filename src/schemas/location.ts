@@ -55,9 +55,9 @@ export const typeDef =  gql`
     }
 
     enum Privacy {
-        public
-        private
-        friends
+        PUBLIC
+        PRIVATE
+        FRIENDS
     }
 
     enum LocationQuery {
@@ -117,7 +117,7 @@ export const resolver: Resolvers = {
               .andWhere("privacy", "=", Privacy.Public);
             if(auth){
                 query.orWhereRaw(`"id" = ? and "user" = ?`,[id, auth])
-                query.orWhereRaw(`"id" = ? and privacy = 'friends' and "user" in (
+                query.orWhereRaw(`"id" = ? and privacy = 'FRIENDS' and "user" in (
                     select "following" from user_followers where "user" = ?
                 )`,[id,auth])
                 query.select(
@@ -137,7 +137,6 @@ export const resolver: Resolvers = {
             const location = await query.first()
             return location;
         },
-        //needs tested
         locations: async (_, { id, type, coordinates, limit, offset, sort }, { auth }) => {
             if(!id) throw new LocationQueryError('ID_NOT_PROVIDED')
             const query = knex("locations").select(
@@ -151,7 +150,7 @@ export const resolver: Resolvers = {
                     query.where('user', id)
                     query.andWhere('privacy', Privacy.Public)
                     if(auth) query.orWhereRaw(`
-                        "id" = ? and privacy = 'friends' and "user" in (
+                        "id" = ? and privacy = 'FRIENDS' and "user" in (
                             select "following" from user_followers where "user" = ?
                         )
                     `,[id, auth])
@@ -165,7 +164,7 @@ export const resolver: Resolvers = {
                     query.where('waterbody', id)
                     query.andWhere('privacy', Privacy.Public)
                     if(auth) query.orWhereRaw(`
-                        "id" = ? and privacy = 'friends' and "user" in (
+                        "id" = ? and privacy = 'FRIENDS' and "user" in (
                             select "following" from user_followers where "user" = ?
                     )`,[id, auth])
                     break;
@@ -316,7 +315,6 @@ export const resolver: Resolvers = {
             
             return (await knex('locationMedia').insert(uploads,'*'))
         },
-        // needs tested
         removeLocationMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthError('AUTHENTICATION_REQUIRED')
 
@@ -329,7 +327,6 @@ export const resolver: Resolvers = {
             }))
             return res;
         },
-        // needs tested
         deleteLocation: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -397,7 +394,6 @@ export const resolver: Resolvers = {
         },
         waterbody: async ({ waterbody: id }) => {
             return (await knex('waterbodies').where({ id }).first())
-
         },
         media: async ({ id }) => {
             return (await knex('locationMedia').where({ location: id }))

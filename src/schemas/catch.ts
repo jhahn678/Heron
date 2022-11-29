@@ -175,7 +175,6 @@ export const resolver: Resolvers = {
         }
     },
     Mutation: {
-        // needs tested
         createCatch: async (_, { newCatch }, { auth }) => {
             const { 
                 point, description, waterbody, 
@@ -287,7 +286,6 @@ export const resolver: Resolvers = {
             if(!res) throw new RequestError('TRANSACTION_NOT_FOUND')
             return res;
         },
-        // needs tested
         addCatchMedia: async (_, { id, media }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -300,7 +298,6 @@ export const resolver: Resolvers = {
 
             return res;
         },
-        // needs tested
         removeCatchMedia: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 
@@ -313,7 +310,6 @@ export const resolver: Resolvers = {
             }))
             return res;
         },
-        // needs tested
         deleteCatch: async (_, { id }, { auth }) => {
             if(!auth) throw new AuthenticationError('Authentication Required')
 

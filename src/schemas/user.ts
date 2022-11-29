@@ -257,7 +257,7 @@ export const resolver: Resolvers = {
             if(auth !== id){
                 query.where('privacy', Privacy.Public)
                 query.orWhereRaw(`
-                    privacy = 'friends' 
+                    privacy = 'FRIENDS' 
                     and "user" in (
                         select "following" 
                         from user_followers

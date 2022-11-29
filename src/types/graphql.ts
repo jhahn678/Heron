@@ -581,9 +581,9 @@ export type NewReviewInput = {
 };
 
 export enum Privacy {
-  Friends = 'friends',
-  Private = 'private',
-  Public = 'public'
+  Friends = 'FRIENDS',
+  Private = 'PRIVATE',
+  Public = 'PUBLIC'
 }
 
 export type Query = {
