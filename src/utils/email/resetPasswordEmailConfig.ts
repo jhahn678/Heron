@@ -23,7 +23,7 @@ const createResetPasswordCommandInput = (params: Params): SendEmailCommand => ne
                 Charset: "UTF-8",
                 Data: `
                 <p>A request was received to reset your password. If this was you, follow this link to proceed:</p>
-                <a href="${PASSWORD_RESET_URL}${params.resetPasswordToken}">${PASSWORD_RESET_URL}${params.resetPasswordToken}</a> 
+                <a href="${PASSWORD_RESET_URL}${params.resetPasswordToken}">${PASSWORD_RESET_URL}/${params.resetPasswordToken}</a> 
                 `,
             },
         },
