@@ -8,6 +8,7 @@ export const checkEmailAvailability = asyncWrapper(async (req: Request<{},{},{},
     try{
         Joi.assert(email, Joi.string().trim().email())
         const user = await knex('users').where('email', email.toLowerCase()).first()
+        console.log(user)
         res.status(200).json({ email, available: Boolean(!user), valid: true })
     }catch(err){    //@ts-ignore
         const valid = !Boolean(err?.name === 'ValidationError')
