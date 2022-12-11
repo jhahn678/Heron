@@ -12,7 +12,7 @@ import {
     ApolloServerPluginDrainHttpServer,
     ApolloServerPluginLandingPageLocalDefault,
 } from 'apollo-server-core';
-import { typeDefs, resolvers } from './schemas'
+import { typeDefs, resolvers } from './graphql'
 import { verifyAccessToken } from './utils/auth/token';
 import { constraintDirective } from 'graphql-constraint-directive';
 

@@ -1,236 +1,27 @@
-import knex from '../configs/knex'
-import { AuthenticationError, gql } from 'apollo-server-express'
-import { Privacy, Resolvers, ReviewSort } from '../types/graphql'
-import { CatchStatisticsRes, LocationStatisticsRes, UserDetailsUpdate } from '../types/User'
-import { RequestError } from '../utils/errors/RequestError'
-import { UploadError } from '../utils/errors/UploadError'
-import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
-import { DeleteObjectsCommand } from '@aws-sdk/client-s3'
-import S3Client from '../configs/s3'
-const { S3_BUCKET_NAME } = process.env;
-
-export const typeDef =  gql`
-    type User { 
-        id: Int!
-        firstname: String
-        lastname: String
-        fullname: String
-        username: String!
-        avatar: String
-        bio: String
-        location: String
-        city: String
-        state: String
-        am_following: Boolean!
-        follows_me: Boolean!
-        following(limit: Int, offset: Int): [User]
-        total_following: Int!
-        followers(limit: Int, offset: Int): [User]
-        total_followers: Int!
-        locations(
-            date: DateRange, 
-            waterbody: [Int!], 
-            privacy: [Privacy!],
-            limit: Int,
-            offset: Int
-        ): [Location]
-        total_locations: Int!
-        location_statistics: LocationStatistics
-        saved_locations(limit: Int, offset: Int): [Location]
-        total_saved_locations: Int!
-        catches(
-            date: DateRange, 
-            species: [String!], 
-            waterbody: [Int!], 
-            length: Range, 
-            weight: Range,
-            limit: Int
-            offset: Int
-        ): [Catch]
-        total_catches: Int!
-        catch_statistics: CatchStatistics
-        saved_waterbodies(limit: Int, offset: Int): [Waterbody]
-        total_saved_waterbodies: Int!
-        waterbody_reviews(limit: Int, offset: Int, sort: ReviewSort): [WaterbodyReview]
-        total_reviews: Int!
-        media(limit: Int, offset: Int): [AnyMedia]
-        total_media: Int!
-        created_at: DateTime!
-        updated_at: DateTime!
-    }
-
-    type LocationStatistics {
-        total_locations: Int!
-        waterbody_counts: [WaterbodyCount!]
-    }
-
-    type CatchStatistics {
-        total_catches: Int!
-        largest_catch: Catch
-        total_species: Int!
-        top_species: String
-        species_counts: [SpeciesCount!]
-        total_waterbodies: Int!
-        top_waterbody: Waterbody
-        waterbody_counts: [WaterbodyCount!]
-    }
-
-    type WaterbodyCount {
-        waterbody: Waterbody!
-        count: Int!
-    }
-
-    type Query {
-        me: User
-        user(id: Int!): User
-        activityFeed(limit: Int, offset: Int): [Catch]
-    }
-
-    type Mutation {
-        updateUserDetails(details: UserDetails!): User
-        updateUserAvatar(avatar: MediaInput): String
-        followUser(id: Int!): Int
-        unfollowUser(id: Int!): Int
-        deleteUser: User
-    }
-
-    input UserDetails {
-        firstname: String
-        lastname: String
-        bio: String
-        city: String
-        state: String
-    }
-
-    input DateRange{
-        min: DateTime
-        max: DateTime
-    }
-
-    input Range {
-        min: PositiveInt
-        max: PositiveInt
-    }
-`
-
+import knex from "../../configs/knex";
+import { Privacy, Resolvers, ReviewSort } from "../../types/graphql";
+import { CatchStatisticsRes, LocationStatisticsRes } from "../../types/User";
+import { deleteUser } from "./mutations/deleteUser";
+import { followUser } from "./mutations/followUser";
+import { unfollowUser } from "./mutations/unfollowUser";
+import { updateUserAvatar } from "./mutations/updateUserAvatar";
+import { updateUserDetails } from "./mutations/updateUserDetails";
+import { getActivityFeed } from "./queries/getActivityFeed";
+import { getMe } from "./queries/getMe";
+import { getUser } from "./queries/getUser";
 
 export const resolver: Resolvers = {
     Query: {
-        me: async (_, __, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Missing')
-            const user = await knex('users').where('id', auth).first()
-            return user;
-        },
-        user: async (_, { id } ) => {
-            const user = await knex('users').where('id', id)
-            return user[0]
-        },
-        activityFeed: async(_, { limit, offset }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            const results = await knex('catches')
-                .select('*', knex.raw("st_asgeojson(st_transform(geom, 4326))::json as geom"))
-                .whereIn("user", function(){
-                    this.from('userFollowers')
-                    .select('following')
-                    .where('user', auth)
-                })
-                .orderBy('created_at', 'desc')
-                .offset(offset || 0)
-                .limit(limit || 10)
-            return results;
-        }
+        me: getMe,
+        user: getUser,
+        activityFeed: getActivityFeed
     },
     Mutation: {
-        updateUserDetails: async (_, { details }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            const update: UserDetailsUpdate = {};
-            const { firstname, lastname, city, state, bio } = details;
-            if(firstname) update.firstname = firstname;
-            if(lastname) update.lastname = lastname;
-            if(state) update.state = state;
-            if(city) update.city = city;
-            if(bio) update.bio = bio;
-            const [result] = await knex('users')
-                .where({ id: auth })
-                .update({ ...update })
-                .returning('*')
-            if(!result) throw new RequestError('TRANSACTION_NOT_FOUND')
-            return result;
-        },
-        updateUserAvatar: async (_, { avatar }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            if(!avatar){
-                await knex('userAvatars').where('user', auth).del()
-                await knex('users').where('id', auth).update('avatar', null)
-                return null;
-            }
-            if(!validateMediaUrl(avatar.url)) throw new UploadError('INVALID_URL')
-            const [{ url }] = await knex('userAvatars')
-                .insert({ ...avatar, user: auth })
-                .onConflict('user')
-                .merge(['key', 'url'])
-                .returning('url')
-            if(!url) throw new RequestError('TRANSACTION_NOT_FOUND')
-            await knex('users').where({ id: auth }).update({ avatar: url })
-            return url;
-        },
-        followUser: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            await knex('userFollowers')
-                .insert({ user: auth, following: id })
-                .onConflict(['user', 'following'])
-                .ignore()
-            return id;
-        },
-        unfollowUser: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            await knex('userFollowers')
-                .where({ user: auth, following: id })
-                .del()
-            return id;
-        },
-        deleteUser: async (_, __, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-            const { rows } = await knex.raw<{ rows: { key: string }[] }>(`
-                with del1 as (
-                    delete from user_avatars 
-                    where "user" = ? returning "key"
-                ), del2 as (
-                    delete from catch_media 
-                    where "user" = ? returning "key"
-                ), del3 as (
-                    delete from catch_map_images 
-                    where "user" = ? returning "key"
-                ), del4 as (
-                    delete from location_media 
-                    where "user" = ? returning "key"
-                ), del5 as (
-                    delete from location_map_images 
-                    where "user" = ? returning "key"
-                ), del6 as (
-                    delete from waterbody_media 
-                    where "user" = ? returning "key"
-                )
-                select "key" from del1
-                union all
-                select "key" from del2
-                union all
-                select "key" from del3
-                union all
-                select "key" from del4
-                union all
-                select "key" from del5
-                union all
-                select "key" from del6
-            `, new Array(6).fill(auth))
-            const keys = rows.map(x => ({ Key: x.key}))
-            await S3Client.send(new DeleteObjectsCommand({
-                Bucket: S3_BUCKET_NAME!,
-                Delete: { Objects: keys }
-            }))
-            const [res] = await knex('users').where('id', auth).del('*')
-            return res;
-        }
+        followUser,
+        deleteUser,
+        unfollowUser,
+        updateUserAvatar,
+        updateUserDetails
     },
     User: {
         fullname: ({ firstname, lastname }) => {

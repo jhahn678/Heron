@@ -1,152 +1,18 @@
-import { AuthenticationError, gql } from 'apollo-server-express'
-import knex, { st } from '../configs/knex'
-import { CatchSort, Privacy, Resolvers, ReviewSort, Sort } from '../types/graphql'
-import { UploadError } from '../utils/errors/UploadError'
-import { validateMediaUrl } from '../utils/validations/validateMediaUrl'
-
-export const typeDef =  gql`
-
-    type Waterbody {
-        id: Int
-        name: String
-        classification: String
-        ccode: String
-        country: String
-        subregion: String
-        admin_one: [String]
-        admin_two: [String]
-        geometries: Geometry
-        catches(offset: Int, limit: Int, sort: CatchSort): [Catch]
-        total_catches: Int
-        total_species: Int
-        all_species: [SpeciesCount!]
-        most_caught_species: String
-        locations(offset: Int, limit: Int): [Location]
-        total_locations: Int
-        media(offset: Int, limit: Int): [WaterbodyMedia]
-        total_media: Int
-        reviews(offset: Int, limit: Int, sort: ReviewSort): [WaterbodyReview]
-        total_reviews: Int
-        average_rating: Float
-        rating_counts: RatingCounts
-        is_saved: Boolean
-        distance: Float
-        rank: Float
-    }
-
-    type SpeciesCount {
-        species: String!
-        count: Int!
-    }
-
-    type RatingCounts {
-        five: Int!
-        four: Int!
-        three: Int!
-        two: Int!
-        one: Int!
-    }
-
-    type Query {
-        waterbody(id: Int!): Waterbody
-        waterbodies(
-            value: String, 
-            classifications: [ClassificationEnum!], 
-            adminOne: [AdminOneEnum!], 
-            queryLocation: QueryLocation, 
-            offset: Int, 
-            limit: Int, 
-            sort: Sort
-        ): [Waterbody]
-    }
-
-    enum Sort {
-        rank
-        distance
-    }
-
-    enum ReviewSort {
-        CREATED_AT_NEWEST
-        CREATED_AT_OLDEST
-        RATING_HIGHEST
-        RATING_LOWEST
-    }
-
-    input QueryLocation {
-        latitude: Float!
-        longitude: Float!,
-        withinMeters: Int!
-    }
-
-    type Mutation {
-        addWaterbodyMedia(id: Int!, media: [MediaInput!]!): [WaterbodyMedia]
-        toggleSaveWaterbody(id: Int!): Boolean
-    }
-`
+import knex from "../../configs/knex";
+import { CatchSort, Privacy, Resolvers, ReviewSort } from "../../types/graphql";
+import { addWaterbodyMedia } from "./mutations/addWaterbodyMedia";
+import { toggleSaveWaterbody } from "./mutations/toggleSaveWaterbody";
+import { getWaterbodies } from "./queries/getWaterbodies";
+import { getWaterbody } from "./queries/getWaterbody";
 
 export const resolver: Resolvers = {
     Query: {
-        waterbody: async (_, { id }, { auth }) => {
-            const query = knex("waterbodies").where("id", id)
-            if(auth) query.select("*",
-                knex.raw(`(select exists (
-                select "user" from saved_waterbodies 
-                where "user" = ? and waterbody = ?
-                )) as is_saved`,[auth, id]
-            ));
-            const result = await query.first();
-            return result
-        },
-        waterbodies: async (_, args) => {
-            const { value, classifications, adminOne, queryLocation, offset, limit, sort } = args;
-            const query = knex('waterbodies')
-            if(value) query.whereILike('name', (value+'%'))
-            if(classifications) query.whereIn('classification', classifications)
-            if(adminOne) query.whereRaw(`admin_one && array[${adminOne.map(() => '?').join(',')}]::varchar[]`, adminOne)
-            if(queryLocation) {
-                const { latitude, longitude, withinMeters } = queryLocation;
-                const point = st.transform(st.setSRID(st.point(longitude, latitude), 4326), 3857)
-                query.select('id', 'name', 'classification', 'country', 'ccode', 
-                    'admin_one', 'admin_two', 'subregion', 'weight', 'oid', 
-                    knex.raw('simplified_geometries <-> ? as distance', point), 
-                    knex.raw('rank_result(simplified_geometries <-> ?, weight, ?) as rank', [point, withinMeters])
-                )
-                query.where(st.dwithin('simplified_geometries', point, withinMeters, false))
-                if(sort === Sort.Distance){
-                    query.orderBy('distance', 'asc')
-                }else{
-                    query.orderBy('rank', 'desc')
-                }
-            }
-            query.offset(offset || 0)
-            query.limit(limit || 20)
-            const results = await query
-            return results
-        },
+        waterbody: getWaterbody,
+        waterbodies: getWaterbodies
     },
     Mutation: {
-        toggleSaveWaterbody: async (_, { id }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const deleted = await knex('savedWaterbodies')
-                .where({ user: auth, waterbody: id })
-                .del()
-            if(deleted === 1) return false;
-
-            await knex('savedWaterbodies')
-                .insert({ user: auth, waterbody: id })
-            return true;
-        },
-        addWaterbodyMedia: async (_, { id, media }, { auth }) => {
-            if(!auth) throw new AuthenticationError('Authentication Required')
-
-            const valid = media.filter(x => validateMediaUrl(x.url))
-            const uploads = valid.map(x => ({ user: auth, waterbody: id, ...x }))
-            if(uploads.length === 0) throw new UploadError('INVALID_URL')
-            
-            const res = await knex('waterbodyMedia').insert(uploads, '*')
-            return res;
-        },
+        addWaterbodyMedia,
+        toggleSaveWaterbody
     },
     Waterbody: {
         geometries: async ({ id }) => {
