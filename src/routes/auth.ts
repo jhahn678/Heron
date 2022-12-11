@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { authorizeRequest } from '../utils/middleware/auth'
+import { requireAccessToken } from '../utils/middleware/auth'
 import authControllers from '../controllers/auth';
 
 const router = Router();
@@ -7,7 +7,7 @@ const router = Router();
 router.post('/login', authControllers.loginUser)
 router.post('/register', authControllers.registerUser)
 router.post('/logout', authControllers.clearAuthentication)
-router.delete('/delete-account', authorizeRequest, authControllers.deleteAccount)
+router.delete('/delete-account', requireAccessToken, authControllers.deleteAccount)
 router.get('/email', authControllers.checkEmailAvailability)
 router.get('/username', authControllers.checkUsernameAvailability)
 router.post('/token', authControllers.issueNewAccessToken)
