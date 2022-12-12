@@ -1,4 +1,5 @@
 import { addPassword } from "./addPassword";
+import { changePassword } from "./changePassword";
 import { changeUsername } from "./changeUsername";
 import { checkEmailAvailability } from "./checkEmailAvailability";
 import { checkUsernameAvailability } from "./checkUsernameAvailability";
@@ -35,7 +36,8 @@ const authControllers = {
     registerUser,
     resetPassword,
     unlinkAccount,
-    deleteRefreshToken
+    deleteRefreshToken,
+    changePassword
 }
 
 export default authControllers

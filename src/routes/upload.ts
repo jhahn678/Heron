@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { requireAccessToken } from '../utils/middleware/auth';
+import { authenticateRequest } from '../utils/middleware/auth';
 import uploadControllers from '../controllers/upload';
 
 const router = Router();
 
-router.get('/signed-url', requireAccessToken, uploadControllers.getSignedUploadUrl)
+router.get('/signed-url', authenticateRequest, uploadControllers.getSignedUploadUrl)
 
 export default router

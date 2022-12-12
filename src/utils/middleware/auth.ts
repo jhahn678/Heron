@@ -17,7 +17,7 @@ export const authorizeRequest: RequestHandler = (req, res, next) => {
 }
 
 /** Ensures that a valid access token is PRESENT in headers */
-export const requireAccessToken: RequestHandler = (req, res, next) => {
+export const authenticateRequest: RequestHandler = (req, res, next) => {
     try{
         const { authorization } = req.headers;
         if(!authorization) throw new AuthError('AUTHENTICATION_REQUIRED')

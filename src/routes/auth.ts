@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { requireAccessToken } from '../utils/middleware/auth'
+import { authenticateRequest } from '../utils/middleware/auth'
 import authControllers from '../controllers/auth';
 
 const router = Router();
@@ -7,7 +7,7 @@ const router = Router();
 router.post('/login', authControllers.loginUser)
 router.post('/register', authControllers.registerUser)
 router.post('/logout', authControllers.clearAuthentication)
-router.delete('/delete-account', requireAccessToken, authControllers.deleteAccount)
+router.delete('/delete-account', authenticateRequest, authControllers.deleteAccount)
 router.get('/email', authControllers.checkEmailAvailability)
 router.get('/username', authControllers.checkUsernameAvailability)
 router.post('/token', authControllers.issueNewAccessToken)
@@ -19,6 +19,7 @@ router.post('/login/apple', authControllers.loginWithApple)
 router.post('/login/facebook', authControllers.loginWithFacebook)
 router.post('/login/google', authControllers.loginWithGoogle)
 router.post('/change-username', authControllers.changeUsername)
+router.post("/change-password", authenticateRequest, authControllers.changePassword)
 router.get('/has-password', authControllers.hasPassword)
 router.post('/add-password', authControllers.addPassword)
 router.post('/unlink-account', authControllers.unlinkAccount)
