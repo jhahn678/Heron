@@ -84,24 +84,31 @@ export class AuthError extends Error{
             case 'ACCESS_TOKEN_INVALID':
                 this.message = 'Access token invalid';
                 this.status = 401
+                break;
             case 'REFRESH_TOKEN_EXPIRED':
                 this.message = 'Refresh token expired';
                 this.status = 401;
+                break;
             case 'REFRESH_TOKEN_INVALID':
                 this.message = 'Refresh token invalid';
-                this.status = 401
+                this.status = 401;
+                break;
             case 'ACCESS_TOKEN_REQUIRED':
                 this.message = 'Access token not provided in request body';
-                this.status = 401
+                this.status = 401;
+                break;
             case 'FACEBOOK_AUTH_FAILED':
                 this.message = 'Could not fetch profile from facebook';
-                this.status = 500
+                this.status = 500;
+                break;
             case 'GOOGLE_AUTH_FAILED':
                 this.message = 'Could not fetch profile from google';
-                this.status = 500
+                this.status = 500;
+                break;
             case 'PASSWORD_INVALID':
                 this.message = 'Provided password is invalid';
-                this.status = 400
+                this.status = 400;
+                break;
             default:
                 break;
         }
