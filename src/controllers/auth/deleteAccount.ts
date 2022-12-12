@@ -1,7 +1,7 @@
-import { DeleteObjectsCommand } from "@aws-sdk/client-s3"
 import knex from "../../configs/knex"
 import S3Client from "../../configs/s3"
 import { asyncWrapper } from "../../utils/errors/asyncWrapper"
+import { DeleteObjectsCommand } from "@aws-sdk/client-s3"
 const { S3_BUCKET_NAME } = process.env;
 
 /**
@@ -9,10 +9,6 @@ const { S3_BUCKET_NAME } = process.env;
  */
 export const deleteAccount = asyncWrapper(async (req, res) => {
     const user = req.user as number;
-    // ERROR
-    // delete from "users" where "id" = $1
-    // update or delete on table "users" violates foreign key constraint 
-    // "Avatar_user_id_fkey" on table "user_avatars"
     const { rows } = await knex.raw<{ rows: { key: string }[] }>(`
         with del1 as (
             delete from user_avatars 
@@ -46,7 +42,6 @@ export const deleteAccount = asyncWrapper(async (req, res) => {
         select "key" from del6
     `, new Array(6).fill(user))
     const keys = rows.map(x => ({ Key: x.key }))
-    console.log(keys)
     if(keys.length){
         await S3Client.send(new DeleteObjectsCommand({
             Bucket: S3_BUCKET_NAME!,
