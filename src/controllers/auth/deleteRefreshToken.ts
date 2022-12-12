@@ -1,14 +1,17 @@
 import knex from "knex";
-import { AuthCookie } from "../../types/Auth";
+import { Request } from "express";
 import { verifyRefreshToken } from "../../utils/auth/token";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
 import { AuthError } from "../../utils/errors/AuthError";
 
-export const clearAuthentication = asyncWrapper(async(req, res) => {
-    const refreshToken = req.cookies[AuthCookie.refreshToken];
+interface RequestBody {
+    refreshToken: string
+}
+
+export const deleteRefreshToken = asyncWrapper(async(req: Request<{},{},RequestBody>, res) => {
+    const { refreshToken } = req.body;
     if(!refreshToken) throw new AuthError('REFRESH_TOKEN_INVALID')
-    res.clearCookie(AuthCookie.refreshToken)
     const { jti } = await verifyRefreshToken(refreshToken)
     await knex('refreshTokens').where({ jwtid: jti }).del()
-    res.status(200).json({ message: 'User logged out' })
+    res.status(200).json({ message: 'Refresh token deleted' })
 })

@@ -11,6 +11,7 @@ router.delete('/delete-account', requireAccessToken, authControllers.deleteAccou
 router.get('/email', authControllers.checkEmailAvailability)
 router.get('/username', authControllers.checkUsernameAvailability)
 router.post('/token', authControllers.issueNewAccessToken)
+router.delete('/token', authControllers.deleteRefreshToken)
 router.post('/forgot-password', authControllers.forgotPassword)
 router.post('/reset-password', authControllers.resetPassword)
 router.get('/my-account', authControllers.getMyAccount)

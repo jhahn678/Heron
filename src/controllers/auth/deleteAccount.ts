@@ -9,7 +9,10 @@ const { S3_BUCKET_NAME } = process.env;
  */
 export const deleteAccount = asyncWrapper(async (req, res) => {
     const user = req.user as number;
-    await knex('users').where({ id: user }).del()
+    // ERROR
+    // delete from "users" where "id" = $1
+    // update or delete on table "users" violates foreign key constraint 
+    // "Avatar_user_id_fkey" on table "user_avatars"
     const { rows } = await knex.raw<{ rows: { key: string }[] }>(`
         with del1 as (
             delete from user_avatars 
@@ -42,11 +45,14 @@ export const deleteAccount = asyncWrapper(async (req, res) => {
         union all
         select "key" from del6
     `, new Array(6).fill(user))
-    const keys = rows.map(x => ({ Key: x.key}))
-    await S3Client.send(new DeleteObjectsCommand({
-        Bucket: S3_BUCKET_NAME!,
-        Delete: { Objects: keys }
-    }))
+    const keys = rows.map(x => ({ Key: x.key }))
+    console.log(keys)
+    if(keys.length){
+        await S3Client.send(new DeleteObjectsCommand({
+            Bucket: S3_BUCKET_NAME!,
+            Delete: { Objects: keys }
+        }))
+    }
     await knex('users').where('id', user).del('*')
     res.status(204).json({ message: `User with id ${user} deleted`})
 })

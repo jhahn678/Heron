@@ -4,6 +4,7 @@ import { checkEmailAvailability } from "./checkEmailAvailability";
 import { checkUsernameAvailability } from "./checkUsernameAvailability";
 import { clearAuthentication } from "./clearAuthentication";
 import { deleteAccount } from "./deleteAccount";
+import { deleteRefreshToken } from "./deleteRefreshToken";
 import { forgotPassword } from "./forgotPassword";
 import { getMyAccount } from "./getMyAccount";
 import { hasPassword } from "./hasPassword";
@@ -33,7 +34,8 @@ const authControllers = {
     loginWithApple,
     registerUser,
     resetPassword,
-    unlinkAccount
+    unlinkAccount,
+    deleteRefreshToken
 }
 
 export default authControllers
