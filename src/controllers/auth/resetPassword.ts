@@ -1,15 +1,18 @@
 import { Request } from "express";
-import Joi from "joi";
 import knex from "../../configs/knex";
 import { hashPassword } from "../../utils/auth/passwords";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
 import { AuthError } from "../../utils/errors/AuthError";
+import { validatePassword } from "../../utils/validations/validatePassword";
 
-export const resetPassword = asyncWrapper(async (req: Request<{},{},{ token: string, password: string }>, res) => {
-    const { token, password } = req.body;
+interface ReqBody { 
+    token: string, 
+    password: string 
+}
 
-    try{ Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]{7,30}/)) }
-    catch(err){ throw new AuthError('PASSWORD_INVALID') }
+export const resetPassword = asyncWrapper(async (req: Request<{},{},ReqBody>, res) => {
+    const { token } = req.body;
+    const password = validatePassword(req.body.password)
 
     const [result] = await knex('passwordResetTokens').where({ token }).del('*')
     if(!result) throw new AuthError('TOKEN_INVALID')

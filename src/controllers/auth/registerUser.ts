@@ -7,7 +7,10 @@ import { hashPassword } from "../../utils/auth/passwords"
 import { createTokenPairOnAuth } from "../../utils/auth/token"
 import { asyncWrapper } from "../../utils/errors/asyncWrapper"
 import { AuthError } from "../../utils/errors/AuthError"
+import { validateEmail } from "../../utils/validations/validateEmail"
 import { validateMediaUrl } from "../../utils/validations/validateMediaUrl"
+import { validatePassword } from "../../utils/validations/validatePassword"
+import { validateUsername } from "../../utils/validations/validateUsername"
 
 interface RegisterRequest{
     firstname: string,
@@ -22,19 +25,11 @@ interface RegisterRequest{
 }
 
 export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterRequest>, res) => {
-    const { firstname, lastname, username, password, email, avatar, city, state, bio } = req.body;
-
-    if(!email) throw new AuthError('EMAIL_REQUIRED');
-    if(!username) throw new AuthError('USERNAME_REQUIRED');
-    if(!password) throw new AuthError('PASSWORD_REQUIRED');
-
-    try{ Joi.assert(email, Joi.string().trim().email()) }
-    catch(err){ throw new AuthError('EMAIL_INVALID') }
-    try{ Joi.assert(username, Joi.string().trim().min(5).max(50)) }
-    catch(err){ throw new AuthError('USERNAME_INVALID') }
-    try{ Joi.assert(password, Joi.string().trim().min(7).max(30).pattern(/[a-zA-Z0-9!@#$%^&*.]{7,30}/)) }
-    catch(err){ throw new AuthError('PASSWORD_INVALID') }
-
+    
+    const email = validateEmail(req.body.email)
+    const username = validateUsername(req.body.username)
+    const password = validatePassword(req.body.password)
+    
     const userWithEmail = await knex('users').where('email', email.toLowerCase()).first()
     if(userWithEmail) throw new AuthError('EMAIL_IN_USE')
 
@@ -48,6 +43,8 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
         email: email.toLowerCase(), 
         password: hashbrowns 
     }
+
+    const { firstname, lastname, avatar, city, state, bio } = req.body;
 
     if(firstname) newUser.firstname = firstname;
     if(lastname) newUser.lastname = lastname;
