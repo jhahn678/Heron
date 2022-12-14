@@ -5,7 +5,6 @@ import { AuthError } from "../../utils/errors/AuthError";
 import { validateUsername } from "../../utils/validations/validateUsername";
 
 interface ReqBody{
-    token: string
     username: string
 }
 
