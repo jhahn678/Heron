@@ -6,10 +6,12 @@ type ErrorType =
 
 export class CoordinateError extends Error{
     status: number = 400
-    message: string = 'There was an error with the location you provided'
+    message: string = 'There was an error with the location you provided';
+    code: string = "COORDINATE_ERROR"
 
     constructor(errorType: ErrorType){
         super()
+        this.code = errorType;
         switch(errorType){
             case 'INVALID_COORDINATES':
                 this.message = 'Coordinates are in an invalid format'

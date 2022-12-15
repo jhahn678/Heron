@@ -56,7 +56,7 @@ interface VerifyAccessTokenOpts {
         return <DecodedToken>verify(token, process.env.ACCESS_TOKEN_SECRET!)
     }catch(err: any){
         if(err.name === 'TokenExpiredError'){
-            if(options?.error && options.error === 'EXPRESS'){
+            if(options?.error === 'EXPRESS'){
                 throw new AuthError('ACCESS_TOKEN_EXPIRED')
             }else{
                 throw new TokenExpiredError()

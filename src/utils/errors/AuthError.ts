@@ -1,6 +1,6 @@
 export enum AuthErrorType {
     /** 
-     * @Status 400 @Message The credentils provided are invalid
+     * @Status 400 @Message The credentials provided are invalid
     */
     'INVALID_CREDENTIALS',
     /** 
@@ -19,11 +19,11 @@ export enum AuthErrorType {
      * @Status 400 @Message The username provided is already in user
     */
    'USERNAME_IN_USE',
-   /** 
+    /** 
      * @Status 400 @Message Username not provided
     */
    'EMAIL_REQUIRED',
-   /** 
+    /** 
      * @Status 400 @Message Email not provided
     */
     'USERNAME_REQUIRED',
@@ -34,8 +34,8 @@ export enum AuthErrorType {
     /** 
      * @Status 400 @Message Could not authenticate request
     */
-   'AUTHENTICATION_FAILED',
-   /** 
+    'AUTHENTICATION_FAILED',
+    /** 
      * @Status 403 @Message Authentication not provided
     */
     'AUTHENTICATION_REQUIRED',
@@ -75,27 +75,40 @@ export enum AuthErrorType {
      * @Status 401 @Message Access token not provided in request body
     */
     'ACCESS_TOKEN_REQUIRED',
+    /**
+     * @Status 400 @Message Facebook account already in use
+    */
+    'FACEBOOK_ACCOUNT_IN_USE',
     /** 
      * @Status 500 @Message Could not fetch profile from facebook
     */
     'FACEBOOK_AUTH_FAILED',
+    /**
+     * @Status 400 @Message Google account already in use
+    */
+    'GOOGLE_ACCOUNT_IN_USE',
     /** 
      * @Status 500 @Message Could not fetch profile from google
     */
     'GOOGLE_AUTH_FAILED',
+    /** 
+     * @Status 400 @Message Apple account already in use
+    */
+    'APPLE_ACCOUNT_IN_USE',
     /** 
      * @Status 400 @Message Provided password is invalid
     */
     'PASSWORD_INVALID'
 }
 
-
 export class AuthError extends Error{
     status: number = 400
     message: string = 'Authentication error'
+    code: string = 'AUTH_ERROR'
 
-    constructor(errorType: AuthErrorType | keyof typeof AuthErrorType){
+    constructor(errorType: keyof typeof AuthErrorType){
         super();
+        this.code = errorType;
         switch(errorType){
             case 'INVALID_CREDENTIALS':
                 this.message = 'The credentils provided are invalid';
@@ -164,6 +177,15 @@ export class AuthError extends Error{
             case 'ACCESS_TOKEN_REQUIRED':
                 this.message = 'Access token not provided in request body';
                 this.status = 401;
+                break;
+            case "APPLE_ACCOUNT_IN_USE":
+                this.message = 'Apple account already in use'
+                break;
+            case "FACEBOOK_ACCOUNT_IN_USE":
+                this.message = "Facebook account already in use"
+                break;
+            case 'GOOGLE_ACCOUNT_IN_USE':
+                this.message = "Google account already in use";
                 break;
             case 'FACEBOOK_AUTH_FAILED':
                 this.message = 'Could not fetch profile from facebook';

@@ -1,4 +1,4 @@
-import knex from "knex";
+import knex from "../../configs/knex";
 import { Request } from "express";
 import { verifyRefreshToken } from "../../utils/auth/token";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";

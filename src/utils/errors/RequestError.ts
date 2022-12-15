@@ -1,15 +1,24 @@
 type ErrorType = 
-| 'DUPLICATE_CONTACT' | 'DUPLICATE_CONTACT_REQUEST'
-| 'DELETE_NOT_FOUND' | 'RESOURCE_NOT_FOUND'
-| 'TRANSACTION_NOT_FOUND' | 'REQUEST_UNDEFINED'
-| 'REQUEST_FAILED' | 'INVALID_REFERENCE' | 'COORDS_INVALID'
-| 'NAME_REQUIRED' | 'ID_REQUIRED'
+| 'DUPLICATE_CONTACT' 
+| 'DUPLICATE_CONTACT_REQUEST'
+| 'DELETE_NOT_FOUND' 
+| 'RESOURCE_NOT_FOUND'
+| 'TRANSACTION_NOT_FOUND' 
+| 'REQUEST_UNDEFINED'
+| 'REQUEST_FAILED' 
+| 'INVALID_REFERENCE' 
+| 'COORDS_INVALID'
+| 'NAME_REQUIRED' 
+| 'ID_REQUIRED'
 
 export class RequestError extends Error{
     status: number = 400;
     message: string;
+    code: string = "REQUEST_ERROR"
+
     constructor(errorType: ErrorType){
         super()
+        this.code = errorType;
         switch(errorType){
             case 'REQUEST_UNDEFINED':
                 this.message = 'The request parameters sent are missing or undefined'

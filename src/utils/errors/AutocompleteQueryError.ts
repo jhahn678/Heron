@@ -6,9 +6,11 @@ type ErrorType =
 export class AutocompleteQueryError extends Error {
     message: string = 'There was an error with the provided query'
     status: number = 400
+    code: string = "AUTOCOMPLETE_ERROR"
 
     constructor(errorType: ErrorType){
         super()
+        this.code = errorType;
         switch(errorType){
             case 'VALUE_REQUIRED':
                 this.message = 'Value is a required parameter'

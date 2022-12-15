@@ -14,6 +14,6 @@ export const validatePassword = (password: string) => {
         return password;
     }
     catch(err){ 
-        throw new AuthError(AuthErrorType.PASSWORD_INVALID) 
+        throw new AuthError("PASSWORD_INVALID") 
     }
 }

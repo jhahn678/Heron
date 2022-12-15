@@ -1,12 +1,16 @@
 type ErrorType = 
-| 'FILE_TYPE_REQUIRED' | 'INVALID_FILE_TYPE' 
+| 'FILE_TYPE_REQUIRED' 
+| 'INVALID_FILE_TYPE' 
 | 'INVALID_URL'
 
 export class UploadError extends Error {
     status: number = 400
     message: string = 'Error uploading file'
+    code: string = "UPLOAD_ERROR"
+
     constructor(errorType: ErrorType){
         super();
+        this.code = errorType;
         switch(errorType){
             case 'FILE_TYPE_REQUIRED':
                 this.message = 'File type query parameter was not provided'

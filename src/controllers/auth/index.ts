@@ -11,6 +11,9 @@ import { forgotPassword } from "./forgotPassword";
 import { getMyAccount } from "./getMyAccount";
 import { hasPassword } from "./hasPassword";
 import { issueNewAccessToken } from "./issueNewAccessToken";
+import { linkAppleAccount } from "./linkAppleAccount";
+import { linkFacebookAccount } from "./linkFacebookAccount";
+import { linkGoogleAccount } from "./linkGoogleAccount";
 import { loginUser } from "./loginUser";
 import { loginWithApple } from "./loginWithApple";
 import { loginWithFacebook } from "./loginWithFacebook";
@@ -35,6 +38,9 @@ const authControllers = {
     loginWithGoogle,
     loginWithFacebook,
     loginWithApple,
+    linkGoogleAccount,
+    linkFacebookAccount,
+    linkAppleAccount,
     registerUser,
     resetPassword,
     unlinkAccount,
