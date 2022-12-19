@@ -7,10 +7,13 @@ import { AuthError } from "../../utils/errors/AuthError";
 
 type UserUpdate = Omit<NewUserGoogle, "username">
 
+interface ReqBody {
+    accessToken: string
+}
+
 /** @Middleware authenticateRequest sets user property */
-export const linkGoogleAccount = asyncWrapper(async (req: Request<{},{},{ accessToken: string }>, res) => {
+export const linkGoogleAccount = asyncWrapper(async (req: Request<{},{},ReqBody>, res) => {
     const { accessToken } = req.body;
-    if(!accessToken) throw new AuthError('AUTHENTICATION_FAILED')
     const url = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`
     let response: GoogleResponse;
     try{

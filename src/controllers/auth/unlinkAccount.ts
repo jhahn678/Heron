@@ -10,8 +10,12 @@ interface UnlinkUpdate {
     google_id?: null
 }
 
+interface ReqBody { 
+    account: LinkedAccount 
+}
+
 /** @Middleware authenticateRequest sets user property */
-export const unlinkAccount = asyncWrapper(async (req: Request<{},{},{ account: LinkedAccount }>, res) => {
+export const unlinkAccount = asyncWrapper(async (req: Request<{},{},ReqBody>, res) => {
     const { account } = req.body
     const update: UnlinkUpdate = {};
     if(account === LinkedAccount.Apple) update['apple_id'] = null;

@@ -10,7 +10,6 @@ import { v4 as uuid } from 'uuid'
 
 export const loginWithGoogle = asyncWrapper(async (req: Request<{},{},{ accessToken: string }>, res) => {
     const { accessToken } = req.body;
-    if(!accessToken) throw new AuthError('AUTHENTICATION_FAILED')
     const url = `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`
     let response: GoogleResponse;
     try{

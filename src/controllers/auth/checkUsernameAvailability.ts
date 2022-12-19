@@ -1,7 +1,6 @@
-import { Request } from "express";
 import knex from "../../configs/knex";
+import { Request } from "express";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
-import { validateUsername } from "../../utils/validations/validateUsername";
 
 interface ReqQuery {
     username: string
@@ -10,8 +9,7 @@ interface ReqQuery {
 export const checkUsernameAvailability = asyncWrapper(async (req: Request<{},{},{},ReqQuery>, res) => {
     const { username } = req.query;
     try{
-        validateUsername(username)
-        const user = await knex('users').where('username', username.toLowerCase()).first()
+        const user = await knex('users').where('username', username).first()
         res.status(200).json({ username, available: Boolean(!user) })
     }catch(err){
         res.status(200).json({ username, available: false })

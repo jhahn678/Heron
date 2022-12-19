@@ -1,16 +1,12 @@
 import { Request } from "express"
-import Joi from "joi"
 import knex from "../../configs/knex"
 import { AuthCookie } from "../../types/Auth"
 import { NewUserObject } from "../../types/User"
+import { AuthError } from "../../utils/errors/AuthError"
 import { hashPassword } from "../../utils/auth/passwords"
 import { createTokenPairOnAuth } from "../../utils/auth/token"
 import { asyncWrapper } from "../../utils/errors/asyncWrapper"
-import { AuthError } from "../../utils/errors/AuthError"
-import { validateEmail } from "../../utils/validations/validateEmail"
 import { validateMediaUrl } from "../../utils/validations/validateMediaUrl"
-import { validatePassword } from "../../utils/validations/validatePassword"
-import { validateUsername } from "../../utils/validations/validateUsername"
 
 interface RegisterRequest{
     firstname: string,
@@ -25,26 +21,22 @@ interface RegisterRequest{
 }
 
 export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterRequest>, res) => {
+
+    const { email, username, password, firstname, lastname, avatar, city, state, bio } = req.body;
     
-    const email = validateEmail(req.body.email)
-    const username = validateUsername(req.body.username)
-    const password = validatePassword(req.body.password)
-    
-    const userWithEmail = await knex('users').where('email', email.toLowerCase()).first()
+    const userWithEmail = await knex('users').where('email', email).first()
     if(userWithEmail) throw new AuthError('EMAIL_IN_USE')
 
-    const userWithUsername = await knex('users').where('username', username.toLowerCase()).first()
+    const userWithUsername = await knex('users').where('username', username).first()
     if(userWithUsername) throw new AuthError('USERNAME_IN_USE')
 
     const hashbrowns = await hashPassword(password)
 
     const newUser: NewUserObject = { 
-        username: username.toLowerCase(), 
-        email: email.toLowerCase(), 
+        username: username, 
+        email: email, 
         password: hashbrowns 
     }
-
-    const { firstname, lastname, avatar, city, state, bio } = req.body;
 
     if(firstname) newUser.firstname = firstname;
     if(lastname) newUser.lastname = lastname;

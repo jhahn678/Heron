@@ -9,7 +9,7 @@ interface UserSearchQuery {
 }
 
 export const searchUsersByUsername = asyncWrapper(async(req: Request<{},{},{},UserSearchQuery>, res) => {
-    const { value, user, limit } = req.query;
+    const { value, user, limit=10 } = req.query;
     
     if(!value) {
         res.status(200).json([])
@@ -17,7 +17,7 @@ export const searchUsersByUsername = asyncWrapper(async(req: Request<{},{},{},Us
         const query = knex('users')
             .select('firstname', 'lastname', 'id', 'avatar', 'username', 'city', 'state')
             .whereILike('username', value + '%')
-            .limit(limit || 10)
+            .limit(limit)
         if(user) {
             query.with(
                 'follows', 

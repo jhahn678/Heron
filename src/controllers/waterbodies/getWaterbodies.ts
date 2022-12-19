@@ -5,7 +5,6 @@ import { CoordinateError } from "../../utils/errors/CoordinateError"
 import { milesToMeters } from "../../utils/transformations/milesToMeters"
 import { validateCoords } from "../../utils/validations/coordinates"
 import { validateAdminOne } from "../../utils/validations/validateAdminOne"
-import { validateLimitInput, validatePageInput } from "../../utils/validations/validatePagination"
 
 interface WaterbodiesQuery {
     /** case-insensitive value */
@@ -28,24 +27,24 @@ interface WaterbodiesQuery {
     subregion?: string
     /** Boolean value to include geometries or not @default false*/
     /** Returns geometries as a geojson geometry collection */
-    geometries: string | boolean,
+    geometries: boolean,
     /**Comma seperated longitude, latitude */
     lnglat?: string,
     /** Number of miles to search within @default 50 */
-    within: string | number
+    within: number
     /** Method to sort by  @default rank */
     sort: 'distance' | 'rank'
     /** page number @default 1 */
-    page: string | number
+    page: number
     /** page size @default 50 */
-    limit: string | number
+    limit: number
 }
 
 export const getWaterbodies = asyncWrapper(async(req: Request<{},{},{},WaterbodiesQuery>, res) => {
     const { 
         value, classifications, admin_one, states, 
         minWeight, maxWeight, ccode, subregion, lnglat,
-        geometries=false, within=50, sort='rank', page=1, limit=50
+        geometries=false, within=50, sort='rank', page=1, limit=20
     } = req.query;
 
     let isUsingDistance = false;
@@ -56,7 +55,7 @@ export const getWaterbodies = asyncWrapper(async(req: Request<{},{},{},Waterbodi
 
     if(classifications){
         const split = classifications.split(',')
-            .map(x => x.trim().toLowerCase())
+            .map(x => x.trim())
         query.whereIn('classification', split)
     }
 
@@ -76,8 +75,8 @@ export const getWaterbodies = asyncWrapper(async(req: Request<{},{},{},Waterbodi
         }
     }
 
-    if(maxWeight) query.where('weight', '<=', parseFloat(maxWeight))
-    if(minWeight) query.where('weight', '>=', parseFloat(minWeight))
+    if(maxWeight) query.where('weight', '<=', maxWeight)
+    if(minWeight) query.where('weight', '>=', minWeight)
 
     if(ccode) query.where('ccode', ccode )
     if(subregion) query.where('subregion', subregion)
@@ -110,11 +109,8 @@ export const getWaterbodies = asyncWrapper(async(req: Request<{},{},{},Waterbodi
         ))
     }
 
-    const vLimit = validateLimitInput(limit);
-    const vPage = validatePageInput(page);
-
-    query.limit(vLimit + 1)
-    query.offset((vPage - 1) * vLimit)
+    query.limit(limit + 1) //Fetch one more than requested to determine if there's next page
+    query.offset((page - 1) * limit)
 
     if(sort && sort === 'distance' && isUsingDistance === true){
         query.orderBy('distance', 'asc')
@@ -123,26 +119,16 @@ export const getWaterbodies = asyncWrapper(async(req: Request<{},{},{},Waterbodi
     }
 
     const results = await query;
-    const hasNext = results.length === (vLimit + 1)
+    const hasNext = results.length === (limit + 1)
 
-    if(results.length === 0){
-        res.status(200).json({
-            metadata: {
-                next: false, 
-                page: vPage, 
-                limit: vLimit
-            },
-            data: []
-        })
-    }else{
-        res.status(200).json({
-            metadata: {
-                next: hasNext,
-                page: vPage,
-                limit: vLimit
-            },
-            data: hasNext ? results.slice(0,-1) : results
-        })
-    }
+    res.status(200).json({
+        metadata: {
+            next: results.length ? hasNext : false, 
+            page: page, 
+            limit: limit
+        },
+        data: results.length === 0 ? [] : hasNext 
+            ? results.slice(0,-1) : results
+    })
 
 })

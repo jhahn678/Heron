@@ -7,10 +7,13 @@ import { AuthError } from "../../utils/errors/AuthError";
 
 type UserUpdate = Omit<NewUserFacebook, "username">
 
+interface ReqBody {
+    accessToken: string
+}
+
 /** @Middleware authenticateRequest sets user property */
-export const linkFacebookAccount = asyncWrapper(async (req: Request<{},{},{ accessToken: string }>, res) => {
+export const linkFacebookAccount = asyncWrapper(async (req: Request<{},{},ReqBody>, res) => {
     const { accessToken } = req.body;
-    if(!accessToken) throw new AuthError('ACCESS_TOKEN_REQUIRED')
     const url = `https://graph.facebook.com/me?fields=id,first_name,last_name,picture&access_token=${accessToken}`
     let response: FacebookResponse;
     try{

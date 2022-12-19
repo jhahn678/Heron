@@ -2,13 +2,11 @@ import { Request } from "express";
 import knex, { st } from "../../configs/knex";
 import { AutocompleteQuery } from "../../types/Autocomplete";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
-import { AutocompleteQueryError } from "../../utils/errors/AutocompleteQueryError";
 import { validateCoords } from "../../utils/validations/coordinates";
 
 export const autocompleteAll = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res, next) => {
             
         const { value, lnglat } = req.query;
-        if(!value) throw new AutocompleteQueryError('VALUE_REQUIRED')
 
         const waterbodies = knex('waterbodies')
         const geoplaces = knex('geoplaces')

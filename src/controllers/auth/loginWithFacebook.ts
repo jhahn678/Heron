@@ -10,7 +10,6 @@ import { v4 as uuid } from 'uuid'
 
 export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ accessToken: string }>, res) => {
     const { accessToken } = req.body;
-    if(!accessToken) throw new AuthError('ACCESS_TOKEN_REQUIRED')
     const url = `https://graph.facebook.com/me?fields=id,first_name,last_name,picture&access_token=${accessToken}`
     let response: FacebookResponse;
     try{

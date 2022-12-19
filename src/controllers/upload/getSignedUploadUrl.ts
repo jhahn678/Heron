@@ -20,7 +20,6 @@ export const getSignedUploadUrl = asyncWrapper(async (req: Request<{},{},{},Sign
     
     const { mimetype } = req.query
 
-    if(!mimetype) throw new UploadError('FILE_TYPE_REQUIRED')
     if(!validateUploadType(mimetype)) throw new UploadError('INVALID_FILE_TYPE')
 
     const fileKey = `${req.user}-${uuid()}.${mimetype.split('/')[1]}`;

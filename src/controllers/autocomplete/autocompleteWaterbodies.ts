@@ -2,14 +2,12 @@ import { Request } from "express";
 import knex, { st } from "../../configs/knex";
 import { AutocompleteQuery } from '../../types/Autocomplete'
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
-import { AutocompleteQueryError } from "../../utils/errors/AutocompleteQueryError";
 import { validateCoords } from "../../utils/validations/coordinates";
 import { validateAdminOne } from "../../utils/validations/validateAdminOne";
 
 export const autocompleteWaterbodies = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res) => {
     
     const { value, lnglat, limit=8 } = req.query;
-    if(!value) throw new AutocompleteQueryError('VALUE_REQUIRED')
     
     const query = knex('waterbodies')
     

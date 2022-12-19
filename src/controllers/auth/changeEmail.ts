@@ -1,8 +1,7 @@
 import { Request } from "express";
 import knex from "../../configs/knex";
-import { asyncWrapper } from "../../utils/errors/asyncWrapper";
 import { AuthError } from "../../utils/errors/AuthError";
-import { validateEmail } from "../../utils/validations/validateEmail";
+import { asyncWrapper } from "../../utils/errors/asyncWrapper";
 
 interface ReqBody{
     email: string
@@ -10,11 +9,11 @@ interface ReqBody{
 
 /** @Middleware authenticateRequest sets user property */
 export const changeEmail = asyncWrapper(async (req: Request<{},{},ReqBody>, res) => {
-    const email = validateEmail(req.body.email)
+    const { email } = req.body;
     try{
         const [updated] = await knex('users')
             .where({ id: req.user })
-            .update({ email: email.toLowerCase() }, '*') 
+            .update({ email }, '*') 
         res.status(200).json({ id: updated.id, email: updated.email })
     }catch(err){
         throw new AuthError("EMAIL_IN_USE")

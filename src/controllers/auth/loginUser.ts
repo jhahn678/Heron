@@ -14,10 +14,9 @@ interface LoginRequest {
 
 export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, res) => {
     const { identifier, password } = req.body;
-    if(typeof identifier !== 'string') throw new AuthError('AUTHENTICATION_FAILED')
     let user: IUser | undefined;
-    user = await knex('users').where('email', identifier.toLowerCase()).first()
-    if(!user) user = await knex('users').where('username', identifier.toLowerCase()).first()
+    user = await knex('users').where('email', identifier).first()
+    if(!user) user = await knex('users').where('username', identifier).first()
     if(!user || !user.password || !(await comparePasswords(password, user.password))){
         throw new AuthError('AUTHENTICATION_FAILED')
     }

@@ -20,18 +20,6 @@ export enum AuthErrorType {
     */
    'USERNAME_IN_USE',
     /** 
-     * @Status 400 @Message Username not provided
-    */
-   'EMAIL_REQUIRED',
-    /** 
-     * @Status 400 @Message Email not provided
-    */
-    'USERNAME_REQUIRED',
-    /** 
-     * @Status 400 @Message Password not provided
-    */
-    'PASSWORD_REQUIRED',
-    /** 
      * @Status 400 @Message Could not authenticate request
     */
     'AUTHENTICATION_FAILED',
@@ -71,10 +59,6 @@ export enum AuthErrorType {
      * @Status 400 @Message Could not send password reset email
     */
     'PASSWORD_RESET_EMAIL_FAILED',
-    /** 
-     * @Status 401 @Message Access token not provided in request body
-    */
-    'ACCESS_TOKEN_REQUIRED',
     /**
      * @Status 400 @Message Facebook account already in use
     */
@@ -125,15 +109,6 @@ export class AuthError extends Error{
             case 'USERNAME_IN_USE':
                 this.message = 'The username provided is already in user';
                 break;
-            case 'EMAIL_REQUIRED':
-                this.message = 'Email not provided';
-                break;
-            case 'USERNAME_REQUIRED':
-                this.message = 'Username not provided';
-                break;
-            case 'PASSWORD_REQUIRED':
-                this.message = 'Password not provided';
-                break;
             case 'AUTHENTICATION_FAILED':
                 this.message = 'Could not authenticate request';
                 break;
@@ -172,10 +147,6 @@ export class AuthError extends Error{
                 break;
             case 'REFRESH_TOKEN_INVALID':
                 this.message = 'Refresh token invalid';
-                this.status = 401;
-                break;
-            case 'ACCESS_TOKEN_REQUIRED':
-                this.message = 'Access token not provided in request body';
                 this.status = 401;
                 break;
             case "APPLE_ACCOUNT_IN_USE":

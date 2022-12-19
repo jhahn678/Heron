@@ -10,11 +10,11 @@ interface ReqBody{
 
 /** @Middleware authenticateRequest sets user property */
 export const changeUsername = asyncWrapper(async (req: Request<{},{},ReqBody>, res) => {
-    const username = validateUsername(req.body.username)
+    const { username } = req.body;
     try{
         const [updated] = await knex('users')
             .where({ id: req.user })
-            .update({ username: username.toLowerCase() }, '*') 
+            .update({ username }, '*') 
         res.status(200).json({ id: updated.id, username: updated.username })
     }catch(err){
         throw new AuthError('USERNAME_IN_USE')

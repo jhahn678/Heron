@@ -48,6 +48,7 @@
     "datasource-sql": "^2.0.1",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
+    "express-validator": "^6.14.2",
     "google-auth-library": "^8.6.0",
     "graphql": "^16.5.0",
     "graphql-constraint-directive": "^3.1.1",

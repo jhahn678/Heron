@@ -3,7 +3,6 @@ import knex from "../../configs/knex";
 import { AuthCookie } from "../../types/Auth";
 import { createTokenPairOnAuth } from "../../utils/auth/token";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
-import { AuthError } from "../../utils/errors/AuthError";
 import { v4 as uuid } from 'uuid'
 
 interface AppleLoginBody {
@@ -14,7 +13,6 @@ interface AppleLoginBody {
 
 export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLoginBody>, res) => {
     const { apple_id, firstname, lastname } = req.body;
-    if(!apple_id) throw new AuthError('AUTHENTICATION_FAILED')
     const user =  await knex('users').where({ apple_id }).first()
     if(user){
         const tokens = await createTokenPairOnAuth({ id: user.id }) 

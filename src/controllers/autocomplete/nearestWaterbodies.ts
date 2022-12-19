@@ -1,7 +1,6 @@
 import { Request } from "express";
 import knex, { st } from "../../configs/knex";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
-import { AutocompleteQueryError } from "../../utils/errors/AutocompleteQueryError";
 import { CoordinateError } from "../../utils/errors/CoordinateError";
 import { validateCoords } from "../../utils/validations/coordinates";
 
@@ -12,7 +11,6 @@ interface LngLatQuery {
 
 export const nearestWaterbodies = asyncWrapper(async (req: Request<{},{},{},LngLatQuery>, res) => {
     const { lnglat } = req.query;
-    if(!lnglat) throw new AutocompleteQueryError('LATLNG_NOT_PROVIDED')
     const coords = lnglat.split(',').map(x => parseFloat(x))
     if(!validateCoords(coords)) throw new CoordinateError('INVALID_COORDINATES')
     const [lng, lat] = coords;

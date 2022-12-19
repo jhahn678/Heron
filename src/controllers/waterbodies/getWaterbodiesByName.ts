@@ -1,7 +1,6 @@
 import { Request } from "express";
 import knex from "../../configs/knex";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
-import { RequestError } from "../../utils/errors/RequestError";
 import { validateAdminOne } from "../../utils/validations/validateAdminOne";
 
 interface GetDuplicatesQuery {
@@ -13,14 +12,12 @@ interface GetDuplicatesQuery {
 export const getWaterbodiesByName = asyncWrapper(async(req: Request<{},{},{},GetDuplicatesQuery>, res) => {
     
     const { name, classification, admin_one } = req.query;
-
-    if(!name) throw new RequestError('NAME_REQUIRED')
     
     const query = knex('waterbodies').where('name', name)
 
     if(classification){
         const split = classification.split(',')
-            .map(x => x.trim().toLowerCase())
+            .map(x => x.trim())
         query.whereIn('classification', split)
     }
 
