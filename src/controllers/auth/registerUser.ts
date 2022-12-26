@@ -23,9 +23,6 @@ interface RegisterRequest{
 export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterRequest>, res) => {
 
     const { email, username, password, firstname, lastname, avatar, city, state, bio } = req.body;
-    
-    const userWithEmail = await knex('users').where('email', email).first()
-    if(userWithEmail) throw new AuthError('EMAIL_IN_USE')
 
     const userWithUsername = await knex('users').where('username', username).first()
     if(userWithUsername) throw new AuthError('USERNAME_IN_USE')
@@ -33,9 +30,14 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
     const hashbrowns = await hashPassword(password)
 
     const newUser: NewUserObject = { 
-        username: username, 
-        email: email, 
+        username: username,
         password: hashbrowns 
+    }
+
+    if(email){
+        const userWithEmail = await knex('users').where('email', email).first()
+        if(userWithEmail) throw new AuthError('EMAIL_IN_USE')
+        newUser.email = email;
     }
 
     if(firstname) newUser.firstname = firstname;
