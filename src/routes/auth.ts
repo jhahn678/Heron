@@ -16,33 +16,30 @@ router.post(
 
 router.post(
     '/register', [
-        body('username')
-            .exists().isString().trim()
-            .isLength({ min: 6, max: 36 })
-            .toLowerCase(),
-        body("password").exists().isString().matches(/[a-zA-Z0-9!@#$%^&*.]{7,30}/),
-        body("email").trim().isEmail().toLowerCase(),
-        body('firstname').isString().trim(),
-        body('lastname').isString().trim(),
-        body("avatar").isObject(),
-        body("city").isString(),
-        body("state").isString(),
-        body("bio").isString()
+        body('username').trim().isString().toLowerCase().isLength({ min: 6, max: 36 }).exists(),
+        body("password").isString().matches(/[a-zA-Z0-9!@#$%^&*.]{7,30}/).exists(),
+        body("email").isEmail().trim().toLowerCase().optional(),
+        body('firstname').isString().trim().optional(),
+        body('lastname').isString().trim().optional(),
+        body("avatar").isObject().optional(),
+        body("city").isString().optional(),
+        body("state").isString().optional(),
+        body("bio").isString().optional()
     ],
     validationMiddleware,
     authControllers.registerUser)
 
 router.post(
     '/token', [
-        body('token').exists().isString(),
-        body('includeUser').toBoolean()
+        body('token').isString().exists(),
+        body('includeUser').toBoolean().optional()
     ],
     validationMiddleware,
     authControllers.issueNewAccessToken)
 
 router.delete(
     '/token',
-    body('refreshToken').exists().isString(),
+    body('refreshToken').isString().exists(),
     validationMiddleware,
     authControllers.deleteRefreshToken)
 
@@ -52,7 +49,7 @@ router.post(
 
 router.get(
     '/email', 
-    query('email').exists().trim().isEmail().toLowerCase(),
+    query('email').trim().isEmail().toLowerCase().exists(),
     validationMiddleware,
     authControllers.checkEmailAvailability)
 
@@ -72,18 +69,15 @@ router.post(
 
 router.get(
     '/username',
-    query('username')
-        .exists().isString().trim()
-        .isLength({ min: 6, max: 36 })
-        .toLowerCase(),
+    query('username').exists().isString().trim().isLength({ min: 6, max: 36 }).toLowerCase(),
     validationMiddleware,
     authControllers.checkUsernameAvailability)
 
 router.post(
     '/login/apple', [
         body('apple_id').exists().isString(),
-        body('firstname').isString(),
-        body('lastname').isString()
+        body('firstname').isString().optional(),
+        body('lastname').isString().optional()
     ],
     validationMiddleware,
     authControllers.loginWithApple)

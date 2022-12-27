@@ -8,7 +8,7 @@ const router = Router()
 router.get(
     '/', [
         query("value").exists().isString().trim(),
-        query("lnglat").isString(),
+        query("lnglat").isString().optional(),
     ],
     validationMiddleware,
     autocompleteControllers.autocompleteAll)
@@ -16,8 +16,8 @@ router.get(
 router.get(
     '/geoplaces', [
         query("value").exists().isString().trim(),
-        query("lnglat").isString(),
-        query("limit").toInt()
+        query("lnglat").isString().optional(),
+        query("limit").toInt().optional()
     ],
     validationMiddleware,
     autocompleteControllers.autocompleteGeoplaces)
@@ -25,17 +25,17 @@ router.get(
 router.get(
     '/waterbodies', [
         query("value").exists().isString().trim(),
-        query("lnglat").isString(),
-        query("limit").toInt()
+        query("lnglat").isString().optional(),
+        query("limit").toInt().optional()
     ],
     validationMiddleware,
     autocompleteControllers.autocompleteWaterbodies)
 
 router.get(
     '/waterbodies/distinct-name', [
-        query("value").isString().trim(),
-        query("classifications").isString(),
-        query("admin_one").isString()
+        query("value").isString().trim().optional(),
+        query("classifications").isString().optional(),
+        query("admin_one").isString().optional()
     ],
     validationMiddleware,
     autocompleteControllers.searchDistinctWaterbodyName)
@@ -54,9 +54,9 @@ router.get(
 
 router.get(
     '/users', [
-        query("value").isString(),
-        query("user").toInt(),
-        query("limit").toInt()
+        query("value").isString().optional(),
+        query("user").toInt().optional(),
+        query("limit").toInt().optional()
     ],
     validationMiddleware,
     autocompleteControllers.searchUsersByUsername)
