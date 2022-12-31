@@ -20,10 +20,13 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
         res.status(200).json({ 
             ...tokens, 
             id: user.id,
+            bio: user.bio,
+            city: user.city,
+            state: user.state,
             avatar: user.avatar, 
+            lastname: user.lastname,
             username: user.username, 
             firstname: user.firstname,
-            lastname: user.lastname,
             account_created: false
         })
     }else{
@@ -37,10 +40,13 @@ export const loginWithApple  = asyncWrapper(async (req: Request<{},{},AppleLogin
         res.status(200).json({
             ...tokens,
             id: newUser.id,
-            avatar: newUser.avatar,
-            username: newUser.username,
-            firstname: newUser.firstname,
+            bio: newUser.bio,
+            city: newUser.city,
+            state: newUser.state,
+            avatar: newUser.avatar, 
             lastname: newUser.lastname,
+            username: newUser.username, 
+            firstname: newUser.firstname,
             account_created: true
         })
     }

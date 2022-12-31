@@ -61,9 +61,12 @@ export const registerUser = asyncWrapper(async (req: Request<{},{},RegisterReque
     res.status(201).json({ 
         ...tokens,
         id: user.id,
-        firstname: user.firstname,
+        bio: user.bio,
+        city: user.city,
+        state: user.state, 
         lastname: user.lastname,
         username: user.username, 
+        firstname: user.firstname,
         avatar: url, 
     })
 

@@ -26,10 +26,13 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
         res.status(200).json({ 
             ...tokens, 
             id: exists.id,
+            bio: exists.bio,
+            city: exists.city,
+            state: exists.state,
             avatar: exists.avatar, 
+            lastname: exists.lastname,
             username: exists.username, 
             firstname: exists.firstname,
-            lastname: exists.lastname,
             account_created: false
         })
     }else{
@@ -44,10 +47,13 @@ export const loginWithFacebook = asyncWrapper(async (req: Request<{},{},{ access
         res.status(200).json({
             ...tokens, 
             id: result.id,
+            bio: result.bio,
+            city: result.city,
+            state: result.state,
             avatar: result.avatar, 
+            lastname: result.lastname,
             username: result.username, 
             firstname: result.firstname,
-            lastname: result.lastname,
             account_created: true
         })
     }

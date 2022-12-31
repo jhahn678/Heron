@@ -32,6 +32,9 @@ export const loginUser = asyncWrapper(async (req: Request<{},{},LoginRequest>, r
         firstname: user.firstname,
         lastname: user.lastname,
         username: user.username, 
+        city: user.city,
+        state: user.state,
+        bio: user.bio,
         avatar: user.avatar, 
     })
 })
