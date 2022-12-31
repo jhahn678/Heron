@@ -15,10 +15,10 @@ export const nearestGeoplace = asyncWrapper(async(req: Request<{},{},{},LngLatQu
     if(!validateCoords(coords)) throw new CoordinateError('INVALID_COORDINATES')
     const [lng, lat] = coords;
     const point = st.transform(st.setSRID(st.point(lng, lat), 4326), 3857)
-    const result = await knex('geoplaces')
+    const [result] = await knex('geoplaces')
         .select('name', 'admin_one')
         .where('fclass', '=', 'P')
         .orderByRaw('geom <-> ?', [point])
-        .first()
+        .limit(1)
     res.status(200).json({ geoplace: `${result.name}, ${result.admin_one}`})
 })
