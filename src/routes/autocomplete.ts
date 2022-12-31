@@ -17,7 +17,8 @@ router.get(
     '/geoplaces', [
         query("value").exists().isString().trim(),
         query("lnglat").isString().optional(),
-        query("limit").toInt().optional()
+        query("limit").toInt().optional(),
+        query("fclass").isString().optional()
     ],
     validationMiddleware,
     autocompleteControllers.autocompleteGeoplaces)
@@ -26,7 +27,7 @@ router.get(
     '/waterbodies', [
         query("value").exists().isString().trim(),
         query("lnglat").isString().optional(),
-        query("limit").toInt().optional()
+        query("limit").toInt().optional(),
     ],
     validationMiddleware,
     autocompleteControllers.autocompleteWaterbodies)

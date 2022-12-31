@@ -1,11 +1,12 @@
 require('dotenv').config()
 import Knex from "knex";
 import KnexPostgis from "knex-postgis"; 
-import { IUser, UserAvatar, IContact, IUserFollowers } from "../types/User";
+import { IGeoplace } from '../types/Geoplace'
+import { IPasswordResetToken, IRefreshToken } from "../types/Auth";
 import { ICatch, ICatchFavorite, ICatchMedia } from "../types/Catch";
+import { IUser, UserAvatar, IContact, IUserFollowers } from "../types/User";
 import { ILocation, ILocationFavorite, ILocationMedia, ISavedLocation } from "../types/Location";
 import { IGeometry, ISavedWaterbody, IWaterbody, IWaterbodyMedia, IWaterbodyReview } from "../types/Waterbody";
-import { IPasswordResetToken, IRefreshToken } from "../types/Auth";
 import camelToSnakeCase from "../utils/transformations/camelToSnakeCase";
 const { PG_HOST, PG_PORT, PG_DBNAME, PG_PASSWORD, PG_USER } = process.env;
 
@@ -45,6 +46,7 @@ declare module 'knex/types/tables' {
         waterbodyReviews: IWaterbodyReview
         savedWaterbodies: ISavedWaterbody,
         geometries: IGeometry,
+        geoplaces: IGeoplace,
         refreshTokens: IRefreshToken,
         userFollowers: IUserFollowers,
         passwordResetTokens: IPasswordResetToken

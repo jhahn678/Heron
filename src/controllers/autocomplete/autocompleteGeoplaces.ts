@@ -1,15 +1,20 @@
 import { Request } from "express";
 import knex, { st } from "../../configs/knex";
-import { AutocompleteQuery } from "../../types/Autocomplete";
+import { AutocompletePlaces } from "../../types/Autocomplete";
 import { asyncWrapper } from "../../utils/errors/asyncWrapper";
 import { validateCoords } from "../../utils/validations/coordinates";
 import { validateAdminOne } from "../../utils/validations/validateAdminOne";
 
-export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},AutocompleteQuery>, res) => {
+export const autocompleteGeoplaces = asyncWrapper(async (req: Request<{},{},{},AutocompletePlaces>, res) => {
     
-    const { value, lnglat, limit=8 } = req.query;
+    const { value, lnglat, limit=8, fclass } = req.query;
     
     const query = knex('geoplaces')
+
+    if(fclass){
+        const parsedClasses = fclass.split(',').map(x => x.trim().toUpperCase());
+        if(parsedClasses.length) query.whereIn('fclass', parsedClasses)
+    }
     
     const parsedValue = value.split(',').map(x => x.trim())
     const [ name, adminOne ] = parsedValue;
