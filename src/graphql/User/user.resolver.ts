@@ -1,6 +1,7 @@
 import knex from "../../configs/knex";
 import { Privacy, Resolvers, ReviewSort } from "../../types/graphql";
 import { CatchStatisticsRes, LocationStatisticsRes } from "../../types/User";
+import { abbreviateAdminOne } from "../../utils/transformations/abbreviateAdminOne";
 import { deleteUser } from "./mutations/deleteUser";
 import { followUser } from "./mutations/followUser";
 import { unfollowUser } from "./mutations/unfollowUser";
@@ -31,7 +32,7 @@ export const resolver: Resolvers = {
             return null;
         },
         location: ({ city, state }) => {    
-            if(city && state) return `${city}, ${state}`;
+            if(city && state) return `${city}, ${abbreviateAdminOne(state)}`;
             if(city) return city;
             if(state) return state;
             return null
